@@ -4,9 +4,15 @@ Sistem testi dosyası - Bileşenlerin çalışıp çalışmadığını kontrol e
 """
 
 import sys
+import os
+from pathlib import Path
 import traceback
 from datetime import datetime
 import numpy as np
+
+# Proje root dizinini Python path'ine ekle
+PROJECT_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
 def test_imports():
     """Gerekli modüllerin import edilip edilemediğini test eder."""
@@ -52,6 +58,8 @@ def test_core_modules():
         print("✅ Core modülleri import edildi")
     except ImportError as e:
         print(f"❌ Core modül import hatası: {e}")
+        print(f"📁 PROJECT_ROOT: {PROJECT_ROOT}")
+        print(f"📁 sys.path: {sys.path[:3]}...")
         return False
     
     try:
@@ -192,6 +200,7 @@ def test_data_persistence():
         
         # Temizle
         user_manager.delete_user("Test User")
+        from utils import FileManager
         FileManager.delete_directory("test_data")
         print("✅ Test verileri temizlendi")
         
