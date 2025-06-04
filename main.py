@@ -10,6 +10,12 @@ import numpy as np
 from datetime import datetime
 import sys
 import os
+from pathlib import Path
+
+# Proje root dizinini Python path'ine ekle (scripts dışından çalıştırılırsa)
+PROJECT_ROOT = Path(__file__).parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 # Core modüllerini import et
 from core import FaceDetector, FaceRecognizer, UserManager
