@@ -284,31 +284,79 @@ class OptimizedFaceRecognitionApp:
                 
                 # Performance bilgilerini çiz
                 if self.config.ui.show_fps:
-                    # FPS hesaplama
+                    # Smooth FPS hesaplama
                     fps_counter += 1
-                    if fps_counter % 30 == 0:  # Her 30 frame'de bir güncelle
-                        current_fps = fps_counter / (time.time() - fps_start_time)
+                    current_time = time.time()
+                    
+                    if fps_counter % 10 == 0:  # Her 10 frame'de bir güncelle (daha smooth)
+                        elapsed = current_time - fps_start_time
+                        current_fps = fps_counter / elapsed if elapsed > 0 else 0
                         fps_counter = 0
-                        fps_start_time = time.time()
+                        fps_start_time = current_time
                     else:
-                        current_fps = fps_counter / (time.time() - fps_start_time) if fps_counter > 0 else 0
+                        elapsed = current_time - fps_start_time
+                        current_fps = fps_counter / elapsed if elapsed > 0 and fps_counter > 0 else 0
                     
                     # Performance metrikler
                     frame_time = (time.time() - frame_start_time) * 1000  # ms
+                    cache_stats = self.face_detector.get_performance_stats()
                     
-                    # Bilgileri çiz
+                    # FPS renk kodlaması (yeşil=iyi, sarı=orta, kırmızı=kötü)
+                    if current_fps >= 20:
+                        fps_color = (0, 255, 0)  # Yeşil
+                        fps_status = "EXCELLENT"
+                    elif current_fps >= 15:
+                        fps_color = (0, 255, 255)  # Sarı
+                        fps_status = "GOOD"
+                    elif current_fps >= 10:
+                        fps_color = (0, 165, 255)  # Turuncu
+                        fps_status = "FAIR"
+                    else:
+                        fps_color = (0, 0, 255)  # Kırmızı
+                        fps_status = "POOR"
+                    
+                    # Performance panel arka planı
+                    panel_height = 180
+                    panel_width = 280
+                    overlay = frame.copy()
+                    cv2.rectangle(overlay, (5, 5), (panel_width, panel_height), (0, 0, 0), -1)
+                    cv2.addWeighted(frame, 0.7, overlay, 0.3, 0, frame)
+                    
+                    # FPS Progress Bar
+                    bar_width = 200
+                    bar_height = 20
+                    bar_x, bar_y = 70, 25
+                    
+                    # Progress bar arka plan
+                    cv2.rectangle(frame, (bar_x, bar_y), (bar_x + bar_width, bar_y + bar_height), (50, 50, 50), -1)
+                    
+                    # Progress bar doldurma (max 30 FPS olarak kabul)
+                    max_fps = 30
+                    progress = min(current_fps / max_fps, 1.0)
+                    fill_width = int(bar_width * progress)
+                    cv2.rectangle(frame, (bar_x, bar_y), (bar_x + fill_width, bar_y + bar_height), fps_color, -1)
+                    
+                    # Progress bar çerçeve
+                    cv2.rectangle(frame, (bar_x, bar_y), (bar_x + bar_width, bar_y + bar_height), (255, 255, 255), 2)
+                    
+                    # Performance bilgileri
                     info_lines = [
+                        f"FPS: {current_fps:.1f} ({fps_status})",
+                        f"Frame Time: {frame_time:.1f}ms",
                         f"Users: {self.face_recognizer.get_known_faces_count()}",
-                        f"FPS: {current_fps:.1f}",
-                        f"Frame: {frame_time:.1f}ms",
                         f"Faces: {len(faces) if faces else 0}",
+                        f"Cache Hits: {cache_stats.get('cache_hits', 0)}",
+                        f"Memory: {cache_stats.get('memory_usage', 0):.1f}MB",
                         "Press 'q' to quit"
                     ]
                     
                     for i, line in enumerate(info_lines):
-                        y_pos = 30 + i * 25
-                        cv2.putText(frame, line, (10, y_pos), 
-                                  cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.config.ui.text_color, 2)
+                        y_pos = 60 + i * 18
+                        # Text shadow
+                        cv2.putText(frame, line, (11, y_pos + 1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+                        # Main text
+                        text_color = fps_color if i == 0 else (255, 255, 255)
+                        cv2.putText(frame, line, (10, y_pos), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color, 1)
                 
                 cv2.imshow('Face Recognition', frame)
                 
