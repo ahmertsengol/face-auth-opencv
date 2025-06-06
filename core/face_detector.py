@@ -1,5 +1,5 @@
 """
-Yüz algılama servisi - Optimize edilmiş görüntülerde yüz tespiti
+Yüz algılama servisi - Görüntülerde yüz tespiti yapar
 """
 
 import cv2

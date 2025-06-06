@@ -1,0 +1,50 @@
+{
+  "camera": {
+    "index": 0,
+    "width": 640,
+    "height": 480,
+    "fps": 30
+  },
+  "detection": {
+    "opencv_scale_factor": 1.1,
+    "opencv_min_neighbors": 3,
+    "opencv_min_size": [
+      50,
+      50
+    ],
+    "dlib_model": "hog",
+    "face_encoding_jitters": 1,
+    "recognition_tolerance": 0.6,
+    "cache_timeout": 5.0,
+    "max_cache_size": 128
+  },
+  "system": {
+    "data_dir": "data/users",
+    "logs_dir": "logs",
+    "backup_dir": "data/backups",
+    "max_workers": 2,
+    "auto_cleanup": true,
+    "log_level": "INFO"
+  },
+  "ui": {
+    "window_width": 800,
+    "window_height": 600,
+    "show_fps": true,
+    "show_confidence": true,
+    "success_color": [
+      0,
+      255,
+      0
+    ],
+    "error_color": [
+      0,
+      0,
+      255
+    ],
+    "text_color": [
+      255,
+      255,
+      255
+    ]
+  }
+}
