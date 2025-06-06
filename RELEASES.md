@@ -1,6 +1,48 @@
 # 🚀 **Release Notes - Face Recognition System**
 
-## 🔧 **v2.0.1 - Critical Installation Fixes** *(Latest)*
+## 🎨 **v2.0.2 - Enhanced FPS Display** *(Latest)*
+**Release Date**: 2024-06-07
+
+### ✨ **UI/UX Enhancements:**
+- 🎯 **Advanced FPS Display** with color-coded status indicators
+  - **GREEN (20+ FPS)**: EXCELLENT performance
+  - **YELLOW (15+ FPS)**: GOOD performance  
+  - **ORANGE (10+ FPS)**: FAIR performance
+  - **RED (<10 FPS)**: POOR performance
+
+- 📊 **Visual Performance Panel**
+  - Semi-transparent background overlay
+  - Real-time progress bar (max 30 FPS scale)
+  - Smooth FPS calculation (10-frame averaging)
+
+- 📈 **Comprehensive Metrics Display**
+  - Frame processing time (ms)
+  - Cache hit statistics
+  - Memory usage monitoring
+  - Active users and detected faces count
+
+- 🎨 **Enhanced Readability**
+  - Text shadows for better visibility
+  - Color-coded performance indicators
+  - Professional visual feedback
+
+### 🎮 **New Visual Features:**
+```
+┌─────────────────────────────────┐
+│ FPS: 25.3 (EXCELLENT)          │
+│ ████████████████████░░░░ 84%    │
+│ Frame Time: 12.5ms              │
+│ Users: 3                        │
+│ Faces: 1                        │
+│ Cache Hits: 156                 │
+│ Memory: 45.2MB                  │
+│ Press 'q' to quit              │
+└─────────────────────────────────┘
+```
+
+---
+
+## 🔧 **v2.0.1 - Critical Installation Fixes**
 **Release Date**: 2024-06-06
 
 ### 🚨 **Critical Fixes:**
@@ -76,25 +118,24 @@ make install  # Now includes all dependencies!
 
 ### **Fresh Installation:**
 ```bash
-# Latest v2.0.1 (Recommended)
+# Latest v2.0.2 (Recommended)
 git clone https://github.com/ahmertsengol/face-auth-opencv.git
 cd face-auth-opencv
-git checkout v2.0.1
+git checkout v2.0.2
 make install
 ```
 
-### **Upgrade from v2.0.0:**
+### **Upgrade from v2.0.1:**
 ```bash
 git pull origin main
-git checkout v2.0.1
-pip install git+https://github.com/ageitgey/face_recognition_models
+git checkout v2.0.2
 make test
 ```
 
 ### **Quick Start:**
 ```bash
 make register    # Add user
-make recognize   # Start recognition
+make recognize   # Start recognition (with new FPS display!)
 make status     # Check system
 ```
 
@@ -107,4 +148,4 @@ make status     # Check system
 - 🔧 **Fix Issues**: [FIX_INSTALLATION.md](FIX_INSTALLATION.md)
 - 🐛 **Report Bugs**: GitHub Issues
 
-**🎉 Face Recognition System - Production Ready!** 
+**🎉 Face Recognition System - Now with Enhanced Visual Feedback!** 
