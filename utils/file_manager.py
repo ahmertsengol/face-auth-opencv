@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Optional, List, Dict
 import shutil
 from datetime import datetime
+import re
 
 
 class FileManager:
@@ -327,19 +328,120 @@ class FileManager:
     def get_safe_filename(filename: str) -> str:
         """
         Dosya adını güvenli hale getirir.
+        Özel karakterleri temizler ve path traversal saldırılarını önler.
         
         Args:
-            filename: Orijinal dosya adı
+            filename: Düzenlenecek dosya adı
             
         Returns:
             Güvenli dosya adı
         """
-        # Güvenli olmayan karakterleri temizle
-        safe_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_. "
-        safe_name = "".join(c for c in filename if c in safe_chars)
+        # Zararlı karakterleri temizle
+        safe_filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
         
-        # Boş ise varsayılan ad ver
-        if not safe_name.strip():
-            safe_name = "unnamed_file"
+        # Path traversal saldırılarını önle
+        safe_filename = safe_filename.replace('..', '_')
         
-        return safe_name.strip() 
+        # Boş değilse geri döndür
+        return safe_filename if safe_filename.strip() else 'unnamed_file'
+    
+    @staticmethod
+    def is_safe_path(file_path: str, allowed_dirs: List[str] = None) -> bool:
+        """
+        Dosya yolunun güvenli olup olmadığını kontrol eder.
+        Path traversal saldırılarını önler.
+        
+        Args:
+            file_path: Kontrol edilecek dosya yolu
+            allowed_dirs: İzin verilen dizinler listesi
+            
+        Returns:
+            Güvenli ise True, değilse False
+        """
+        try:
+            # Absolute path'e çevir
+            abs_path = os.path.abspath(file_path)
+            
+            # Path traversal kontrolü (file_path'te, abs_path'te değil)
+            if '..' in os.path.normpath(file_path) or file_path.startswith('~'):
+                return False
+            
+            # Proje dizini kontrolü
+            project_root = os.path.abspath('.')
+            
+            # Güvenli dizinler
+            safe_dirs = [
+                project_root,
+                '/tmp',
+                '/var/tmp',
+                '/var/folders'  # macOS temp folders
+            ]
+            
+            if allowed_dirs:
+                safe_dirs.extend([os.path.abspath(d) for d in allowed_dirs])
+            
+            # Herhangi bir güvenli dizin altında mı kontrol et
+            for safe_dir in safe_dirs:
+                if abs_path.startswith(safe_dir):
+                    return True
+            
+            return False
+            
+        except Exception:
+            return False
+    
+    @staticmethod
+    def read_file(file_path: str) -> Optional[str]:
+        """
+        Dosya içeriğini güvenli şekilde okur.
+        
+        Args:
+            file_path: Okunacak dosya yolu
+            
+        Returns:
+            Dosya içeriği veya None
+        """
+        try:
+            # Güvenlik kontrolü
+            if not FileManager.is_safe_path(file_path):
+                print(f"Güvensiz dosya yolu: {file_path}")
+                return None
+            
+            if not FileManager.file_exists(file_path):
+                return None
+                
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return f.read()
+                
+        except Exception as e:
+            print(f"Dosya okuma hatası: {e}")
+            return None
+    
+    @staticmethod
+    def write_file(file_path: str, content: str) -> bool:
+        """
+        Dosyaya güvenli şekilde yazar.
+        
+        Args:
+            file_path: Yazılacak dosya yolu
+            content: Yazılacak içerik
+            
+        Returns:
+            Başarılı ise True, hata varsa False
+        """
+        try:
+            # Güvenlik kontrolü
+            if not FileManager.is_safe_path(file_path):
+                print(f"Güvensiz dosya yolu: {file_path}")
+                return False
+            
+            # Dizinin var olduğundan emin ol
+            FileManager.ensure_directory(os.path.dirname(file_path))
+            
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            return True
+            
+        except Exception as e:
+            print(f"Dosya yazma hatası: {e}")
+            return False 
