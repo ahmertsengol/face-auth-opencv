@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Ana Yüz Tanıma Uygulaması
+Ana Yüz Tanıma Uygulaması - Optimize Edilmiş Versiyon
 Clean Architecture ve SOLID prensipleriyle geliştirilmiş yüz tanıma sistemi.
 """
 
@@ -11,6 +11,8 @@ from datetime import datetime
 import sys
 import os
 from pathlib import Path
+import time
+from tqdm import tqdm
 
 # Proje root dizinini Python path'ine ekle (scripts dışından çalıştırılırsa)
 PROJECT_ROOT = Path(__file__).parent
@@ -23,44 +25,72 @@ from core.user_manager import UserData
 from core.face_recognizer import RecognitionResult
 from utils import CameraManager, FileManager
 
+# Yeni optimize bileşenler
+from config.app_config import get_config, get_config_manager
+from utils.logger import setup_logging, get_logger, log_execution_time
 
-class FaceRecognitionApp:
+
+class OptimizedFaceRecognitionApp:
     """
-    Ana yüz tanıma uygulaması sınıfı.
-    Dependency Injection Principle: Bağımlılıklar dışarıdan enjekte edilir.
+    Optimize edilmiş ana yüz tanıma uygulaması sınıfı.
+    Performance improvements: Config management, logging, caching
     """
     
     def __init__(self):
         """Uygulamayı başlatır ve bağımlılıkları enjekte eder."""
-        self.face_detector = FaceDetector()
-        self.face_recognizer = FaceRecognizer(tolerance=0.6)
-        self.user_manager = UserManager()
-        self.camera_manager = CameraManager()
+        # Logging ve config sistemini başlat
+        self.config = get_config()
+        self.logger_manager = setup_logging(
+            log_dir=self.config.system.logs_dir,
+            log_level=self.config.system.log_level
+        )
+        self.logger = get_logger('app')
+        
+        self.logger.info("🚀 Optimize edilmiş yüz tanıma sistemi başlatılıyor...")
+        
+        # Bileşenleri başlat
+        self.face_detector = FaceDetector(max_workers=self.config.system.max_workers)
+        self.face_recognizer = FaceRecognizer(tolerance=self.config.detection.recognition_tolerance)
+        self.user_manager = UserManager(data_dir=self.config.system.data_dir)
+        self.camera_manager = CameraManager(camera_index=self.config.camera.index)
+        
+        # Performance metrics
+        self.session_stats = {
+            'start_time': time.time(),
+            'users_processed': 0,
+            'faces_detected': 0,
+            'recognition_attempts': 0
+        }
         
         # Kayıtlı kullanıcıları yükle
         self._load_known_users()
     
+    @log_execution_time('app')
     def _load_known_users(self) -> None:
         """Kayıtlı kullanıcıları sisteme yükler."""
         try:
             users = self.user_manager.load_all_users()
             self.face_recognizer.clear_known_faces()
             
-            for user in users:
-                for encoding in user.face_encodings:
-                    self.face_recognizer.add_known_face(encoding, user.name)
-            
             if users:
-                print(f"✅ {len(users)} kullanıcı sisteme yüklendi.")
+                self.logger.info(f"📚 {len(users)} kullanıcı yükleniyor...")
+                
+                # Progress bar ile yükleme
+                for user in tqdm(users, desc="Kullanıcılar yükleniyor", disable=len(users) < 5):
+                    for encoding in user.face_encodings:
+                        self.face_recognizer.add_known_face(encoding, user.name)
+                
+                self.logger.info(f"✅ {len(users)} kullanıcı sisteme yüklendi.")
             else:
-                print("ℹ️  Henüz kayıtlı kullanıcı yok.")
+                self.logger.info("ℹ️  Henüz kayıtlı kullanıcı yok.")
                 
         except Exception as e:
-            print(f"❌ Kullanıcılar yüklenirken hata: {e}")
+            self.logger.error(f"❌ Kullanıcılar yüklenirken hata: {e}")
     
-    def register_user(self, name: str, sample_count: int = 5) -> bool:
+    @log_execution_time('app')
+    def register_user(self, name: str, sample_count: int = None) -> bool:
         """
-        Yeni kullanıcı kaydeder.
+        Optimize edilmiş kullanıcı kayıt sistemi.
         
         Args:
             name: Kullanıcı adı
@@ -69,76 +99,103 @@ class FaceRecognitionApp:
         Returns:
             Başarılı ise True, hata varsa False
         """
+        if sample_count is None:
+            sample_count = 5  # Default
+            
         if not name or not name.strip():
-            print("❌ Geçerli bir isim girmelisiniz!")
+            self.logger.error("❌ Geçerli bir isim girmelisiniz!")
             return False
         
         name = name.strip()
         
         # Kullanıcı zaten var mı kontrol et
         if self.user_manager.user_exists(name):
-            print(f"⚠️  '{name}' adlı kullanıcı zaten mevcut!")
+            self.logger.warning(f"⚠️  '{name}' adlı kullanıcı zaten mevcut!")
             return False
         
-        print(f"🎯 '{name}' adlı kullanıcı kaydediliyor...")
-        print("📷 Kamera başlatılıyor...")
+        self.logger.info(f"🎯 '{name}' adlı kullanıcı kaydediliyor...")
         
+        # Kamera ayarlarını uygula
         if not self.camera_manager.initialize():
-            print("❌ Kamera başlatılamadı!")
+            self.logger.error("❌ Kamera başlatılamadı!")
             return False
+        
+        # Kamera optimizasyonları
+        self.camera_manager.set_resolution(
+            self.config.camera.width, 
+            self.config.camera.height
+        )
         
         try:
             face_encodings = []
-            print(f"📸 {sample_count} adet fotoğraf çekilecek. Her fotoğraf için 's' tuşuna basın.")
-            print("❌ Çıkmak için 'q' tuşuna basın.")
-            
             sample_taken = 0
+            
+            self.logger.info(f"📸 {sample_count} adet fotoğraf çekilecek...")
+            print("Her fotoğraf için 's' tuşuna basın. Çıkmak için 'q'.")
+            
+            # Progress tracking
+            progress_bar = tqdm(total=sample_count, desc="Örnekler", position=0)
             
             while sample_taken < sample_count:
                 frame = self.camera_manager.capture_frame()
                 if frame is None:
                     continue
                 
-                # Yüzleri algıla ve çiz
-                faces = self.face_detector.detect_faces_opencv(frame)
+                # Optimize yüz algılama
+                faces = self.face_detector.detect_faces_opencv_optimized(frame, use_cache=True)
                 
+                # UI çizimi
+                frame_copy = frame.copy()
                 for (x, y, w, h) in faces:
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                    cv2.putText(frame, f"Sample {sample_taken + 1}/{sample_count}", 
-                              (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                    color = self.config.ui.success_color
+                    cv2.rectangle(frame_copy, (x, y), (x + w, y + h), color, 2)
+                    cv2.putText(frame_copy, f"Sample {sample_taken + 1}/{sample_count}", 
+                              (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
                 
                 # Durum bilgisi
-                cv2.putText(frame, f"'{name}' - Press 's' to capture, 'q' to quit", 
-                          (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                cv2.putText(frame, f"Samples: {sample_taken}/{sample_count}", 
-                          (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                status_text = f"'{name}' - Press 's' to capture, 'q' to quit"
+                cv2.putText(frame_copy, status_text, (10, 30), 
+                          cv2.FONT_HERSHEY_SIMPLEX, 0.7, self.config.ui.text_color, 2)
+                cv2.putText(frame_copy, f"Samples: {sample_taken}/{sample_count}", 
+                          (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.config.ui.text_color, 2)
                 
-                cv2.imshow('User Registration', frame)
+                # Performance bilgisi
+                if self.config.ui.show_fps:
+                    fps_text = f"Detection: {len(faces)} faces"
+                    cv2.putText(frame_copy, fps_text, (10, frame_copy.shape[0] - 20), 
+                              cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.config.ui.text_color, 1)
+                
+                cv2.imshow('User Registration', frame_copy)
                 
                 key = cv2.waitKey(1) & 0xFF
                 
                 if key == ord('q'):
-                    print("❌ Kayıt iptal edildi.")
+                    self.logger.info("❌ Kayıt iptal edildi.")
                     break
-                elif key == ord('s'):
-                    # Fotoğraf çek ve encoding al
-                    current_encodings = self.face_detector.get_face_encodings(frame)
+                elif key == ord('s') and faces:
+                    # Optimize encoding çıkarma
+                    current_encodings = self.face_detector.get_face_encodings_optimized(frame)
                     
                     if current_encodings:
                         face_encodings.extend(current_encodings)
                         sample_taken += 1
-                        print(f"✅ Örnek {sample_taken}/{sample_count} kaydedildi.")
+                        progress_bar.update(1)
+                        self.logger.debug(f"✅ Örnek {sample_taken}/{sample_count} kaydedildi.")
+                        self.session_stats['faces_detected'] += len(current_encodings)
                     else:
-                        print("⚠️  Yüz algılanamadı! Tekrar deneyin.")
+                        self.logger.warning("⚠️  Yüz encoding'i alınamadı! Tekrar deneyin.")
+                elif key == ord('s') and not faces:
+                    self.logger.warning("⚠️  Yüz algılanamadı! Tekrar deneyin.")
             
+            progress_bar.close()
             cv2.destroyAllWindows()
             
             if sample_taken == 0:
-                print("❌ Hiç fotoğraf alınmadı, kayıt iptal edildi.")
+                self.logger.error("❌ Hiç fotoğraf alınmadı, kayıt iptal edildi.")
                 return False
             
             if len(face_encodings) == 0:
-                print("❌ Yüz verisi alınamadı, kayıt iptal edildi.")
+                self.logger.error("❌ Yüz verisi alınamadı, kayıt iptal edildi.")
                 return False
             
             # Kullanıcı verilerini kaydet
@@ -154,31 +211,36 @@ class FaceRecognitionApp:
                 for encoding in face_encodings:
                     self.face_recognizer.add_known_face(encoding, name)
                 
-                print(f"✅ '{name}' başarıyla kaydedildi! ({len(face_encodings)} yüz örneği)")
+                self.logger.info(f"✅ '{name}' başarıyla kaydedildi! ({len(face_encodings)} yüz örneği)")
+                self.session_stats['users_processed'] += 1
                 return True
             else:
-                print("❌ Kullanıcı kaydedilemedi!")
+                self.logger.error("❌ Kullanıcı kaydedilemedi!")
                 return False
         
         except Exception as e:
-            print(f"❌ Kayıt sırasında hata: {e}")
+            self.logger.error(f"❌ Kayıt sırasında hata: {e}")
             return False
         
         finally:
             self.camera_manager.release()
     
+    @log_execution_time('app')
     def start_recognition(self) -> None:
-        """Gerçek zamanlı yüz tanıma başlatır."""
+        """Optimize edilmiş gerçek zamanlı yüz tanıma."""
         if self.face_recognizer.get_known_faces_count() == 0:
-            print("⚠️  Kayıtlı kullanıcı yok! Önce kullanıcı kaydedin.")
+            self.logger.warning("⚠️  Kayıtlı kullanıcı yok! Önce kullanıcı kaydedin.")
             return
         
-        print("🎯 Yüz tanıma başlatılıyor...")
-        print("❌ Çıkmak için 'q' tuşuna basın.")
+        self.logger.info("🎯 Yüz tanıma başlatılıyor...")
         
         if not self.camera_manager.initialize():
-            print("❌ Kamera başlatılamadı!")
+            self.logger.error("❌ Kamera başlatılamadı!")
             return
+        
+        # Performance tracking
+        fps_counter = 0
+        fps_start_time = time.time()
         
         try:
             while True:
@@ -186,41 +248,67 @@ class FaceRecognitionApp:
                 if frame is None:
                     continue
                 
-                # Yüz tespiti (hızlı OpenCV)
-                faces = self.face_detector.detect_faces_opencv(frame)
+                frame_start_time = time.time()
+                
+                # Optimize yüz tespiti
+                faces = self.face_detector.detect_faces_opencv_optimized(frame, use_cache=True)
                 
                 if faces:
-                    # Yüz encodinglerini al (doğru tanıma için)
-                    face_encodings = self.face_detector.get_face_encodings(frame)
+                    # Sadece algılanan yüzlerin encoding'lerini al
+                    face_locations = [(y, x+w, y+h, x) for x, y, w, h in faces]  # Convert format
+                    face_encodings = self.face_detector.get_face_encodings_optimized(frame, face_locations)
                     
                     # Tanıma yap
                     results = self.face_recognizer.recognize_faces(face_encodings)
+                    self.session_stats['recognition_attempts'] += len(results)
                     
                     # Sonuçları çiz
                     for i, (x, y, w, h) in enumerate(faces):
                         if i < len(results):
                             result = results[i]
                             
-                            # Renk belirle
+                            # Renk ve etiket belirle
                             if result.is_match:
-                                color = (0, 255, 0)  # Yeşil - tanındı
-                                label = f"{result.user_name} ({result.confidence:.2f})"
+                                color = self.config.ui.success_color
+                                confidence_text = f" ({result.confidence:.2f})" if self.config.ui.show_confidence else ""
+                                label = f"{result.user_name}{confidence_text}"
                             else:
-                                color = (0, 0, 255)  # Kırmızı - tanınmadı
-                                label = f"Bilinmeyen ({result.confidence:.2f})"
+                                color = self.config.ui.error_color
+                                confidence_text = f" ({result.confidence:.2f})" if self.config.ui.show_confidence else ""
+                                label = f"Bilinmeyen{confidence_text}"
                             
-                            # Çerçeve çiz
+                            # Çerçeve ve etiket çiz
                             cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
-                            
-                            # İsim etiketi
                             cv2.putText(frame, label, (x, y - 10), 
                                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
                 
-                # Durum bilgisi
-                cv2.putText(frame, f"Registered Users: {self.face_recognizer.get_known_faces_count()}", 
-                          (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-                cv2.putText(frame, "Press 'q' to quit", 
-                          (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                # Performance bilgilerini çiz
+                if self.config.ui.show_fps:
+                    # FPS hesaplama
+                    fps_counter += 1
+                    if fps_counter % 30 == 0:  # Her 30 frame'de bir güncelle
+                        current_fps = fps_counter / (time.time() - fps_start_time)
+                        fps_counter = 0
+                        fps_start_time = time.time()
+                    else:
+                        current_fps = fps_counter / (time.time() - fps_start_time) if fps_counter > 0 else 0
+                    
+                    # Performance metrikler
+                    frame_time = (time.time() - frame_start_time) * 1000  # ms
+                    
+                    # Bilgileri çiz
+                    info_lines = [
+                        f"Users: {self.face_recognizer.get_known_faces_count()}",
+                        f"FPS: {current_fps:.1f}",
+                        f"Frame: {frame_time:.1f}ms",
+                        f"Faces: {len(faces) if faces else 0}",
+                        "Press 'q' to quit"
+                    ]
+                    
+                    for i, line in enumerate(info_lines):
+                        y_pos = 30 + i * 25
+                        cv2.putText(frame, line, (10, y_pos), 
+                                  cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.config.ui.text_color, 2)
                 
                 cv2.imshow('Face Recognition', frame)
                 
@@ -228,13 +316,27 @@ class FaceRecognitionApp:
                     break
         
         except Exception as e:
-            print(f"❌ Tanıma sırasında hata: {e}")
+            self.logger.error(f"❌ Tanıma sırasında hata: {e}")
         
         finally:
             cv2.destroyAllWindows()
             self.camera_manager.release()
-            print("👋 Yüz tanıma durduruldu.")
+            self._save_session_stats()
+            self.logger.info("👋 Yüz tanıma durduruldu.")
     
+    def _save_session_stats(self):
+        """Session istatistiklerini kaydet."""
+        session_duration = time.time() - self.session_stats['start_time']
+        
+        self.logger.info("📊 Session İstatistikleri:")
+        self.logger.info(f"  Süre: {session_duration:.1f} saniye")
+        self.logger.info(f"  İşlenen kullanıcı: {self.session_stats['users_processed']}")
+        self.logger.info(f"  Algılanan yüz: {self.session_stats['faces_detected']}")
+        self.logger.info(f"  Tanıma denemesi: {self.session_stats['recognition_attempts']}")
+        
+        # Performance raporu kaydet
+        self.logger_manager.save_performance_report()
+
     def list_users(self) -> None:
         """Kayıtlı kullanıcıları listeler."""
         users = self.user_manager.load_all_users()
@@ -295,21 +397,21 @@ def cli():
 @click.option('--samples', '-s', default=5, help='Alınacak örnek sayısı (varsayılan: 5)')
 def register(name: str, samples: int):
     """Yeni kullanıcı kaydeder"""
-    app = FaceRecognitionApp()
+    app = OptimizedFaceRecognitionApp()
     app.register_user(name, samples)
 
 
 @cli.command()
 def recognize():
     """Gerçek zamanlı yüz tanıma başlatır"""
-    app = FaceRecognitionApp()
+    app = OptimizedFaceRecognitionApp()
     app.start_recognition()
 
 
 @cli.command('list-users')
 def list_users():
     """Kayıtlı kullanıcıları listeler"""
-    app = FaceRecognitionApp()
+    app = OptimizedFaceRecognitionApp()
     app.list_users()
 
 
@@ -317,7 +419,7 @@ def list_users():
 @click.option('--name', '-n', required=True, help='Silinecek kullanıcı adı')
 def delete(name: str):
     """Kullanıcıyı siler"""
-    app = FaceRecognitionApp()
+    app = OptimizedFaceRecognitionApp()
     
     # Onay iste
     if click.confirm(f"'{name}' adlı kullanıcıyı silmek istediğinizden emin misiniz?"):
