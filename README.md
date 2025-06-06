@@ -24,6 +24,8 @@ make register
 make recognize
 ```
 
+📖 **Detaylı kurulum**: [INSTALLATION.md](INSTALLATION.md) | ⚡ **5 dakikada başla**: [QUICKSTART.md](QUICKSTART.md)
+
 ## 🎮 **Basit Kullanım**
 
 ### **📸 Kayıt Süreci**
@@ -99,6 +101,8 @@ make clean-all && make install
 # Test çalıştır
 make test
 ```
+
+**📋 Detaylı sorun giderme**: [INSTALLATION.md](INSTALLATION.md#-sorun-giderme)
 
 ## 📄 **Lisans**
 
