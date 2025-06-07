@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import time
 from tqdm import tqdm
+from typing import List, Optional, Tuple
 
 # Proje root dizinini Python path'ine ekle (scripts dışından çalıştırılırsa)
 PROJECT_ROOT = Path(__file__).parent
@@ -32,8 +33,8 @@ from utils.logger import setup_logging, get_logger, log_execution_time
 
 class OptimizedFaceRecognitionApp:
     """
-    Optimize edilmiş ana yüz tanıma uygulaması sınıfı.
-    Performance improvements: Config management, logging, caching
+    Ultra-optimize edilmiş ana yüz tanıma uygulaması sınıfı.
+    Enhanced Features: Stability, adaptive performance, buffer management
     """
     
     def __init__(self):
@@ -46,7 +47,7 @@ class OptimizedFaceRecognitionApp:
         )
         self.logger = get_logger('app')
         
-        self.logger.info("🚀 Optimize edilmiş yüz tanıma sistemi başlatılıyor...")
+        self.logger.info("🚀 Ultra-optimize edilmiş yüz tanıma sistemi başlatılıyor...")
         
         # Bileşenleri başlat
         self.face_detector = FaceDetector(max_workers=self.config.system.max_workers)
@@ -54,12 +55,46 @@ class OptimizedFaceRecognitionApp:
         self.user_manager = UserManager(data_dir=self.config.system.data_dir)
         self.camera_manager = CameraManager(camera_index=self.config.camera.index)
         
-        # Performance metrics
+        # Enhanced Performance tracking
         self.session_stats = {
             'start_time': time.time(),
             'users_processed': 0,
             'faces_detected': 0,
-            'recognition_attempts': 0
+            'recognition_attempts': 0,
+            'total_frames': 0,
+            'dropped_frames': 0,
+            'error_count': 0,
+            'cache_hits': 0
+        }
+        
+        # Adaptive Performance Management
+        self.performance_monitor = {
+            'fps_history': [],
+            'processing_times': [],
+            'memory_usage': [],
+            'target_fps': 25,
+            'min_fps': 10,
+            'adaptive_quality': True,
+            'frame_skip_counter': 0,
+            'error_recovery_mode': False
+        }
+        
+        # Frame Buffer Management
+        self.frame_buffer = {
+            'enabled': True,
+            'max_size': 3,
+            'current_frames': [],
+            'processing_frame': None,
+            'last_stable_frame': None
+        }
+        
+        # Stability & Error Recovery
+        self.stability_monitor = {
+            'consecutive_errors': 0,
+            'max_consecutive_errors': 5,
+            'last_successful_processing': time.time(),
+            'stability_threshold': 30.0,  # seconds
+            'auto_recovery_enabled': True
         }
         
         # Kayıtlı kullanıcıları yükle
@@ -86,6 +121,138 @@ class OptimizedFaceRecognitionApp:
                 
         except Exception as e:
             self.logger.error(f"❌ Kullanıcılar yüklenirken hata: {e}")
+    
+    def _update_performance_metrics(self, frame_time: float, fps: float, memory_mb: float = 0) -> None:
+        """Performance metriklerini günceller ve adaptive ayarları yapar."""
+        monitor = self.performance_monitor
+        
+        # Metric geçmişini güncelle
+        monitor['fps_history'].append(fps)
+        monitor['processing_times'].append(frame_time)
+        monitor['memory_usage'].append(memory_mb)
+        
+        # Geçmiş boyutunu sınırla (son 100 frame)
+        max_history = 100
+        for key in ['fps_history', 'processing_times', 'memory_usage']:
+            if len(monitor[key]) > max_history:
+                monitor[key] = monitor[key][-max_history:]
+        
+        # Adaptive quality kontrolü
+        if monitor['adaptive_quality'] and len(monitor['fps_history']) > 10:
+            avg_fps = sum(monitor['fps_history'][-10:]) / 10
+            
+            # FPS çok düşükse, quality düşür
+            if avg_fps < monitor['min_fps']:
+                monitor['error_recovery_mode'] = True
+                self.logger.warning(f"⚠️ Düşük FPS tespit edildi: {avg_fps:.1f}. Recovery mode aktif.")
+            elif avg_fps > monitor['target_fps'] * 0.8:
+                monitor['error_recovery_mode'] = False
+    
+    def _manage_frame_buffer(self, new_frame: np.ndarray) -> Optional[np.ndarray]:
+        """Frame buffer yönetimi - stabilite için."""
+        buffer = self.frame_buffer
+        
+        if not buffer['enabled']:
+            return new_frame
+        
+        # Frame'i buffer'a ekle
+        if new_frame is not None and new_frame.shape[0] > 0 and new_frame.shape[1] > 0:
+            buffer['current_frames'].append(new_frame.copy())
+            buffer['last_stable_frame'] = new_frame.copy()
+            
+            # Buffer boyutunu sınırla
+            if len(buffer['current_frames']) > buffer['max_size']:
+                buffer['current_frames'].pop(0)
+            
+            return new_frame
+        else:
+            # Geçersiz frame - son stabil frame'i kullan
+            self.session_stats['dropped_frames'] += 1
+            return buffer['last_stable_frame']
+    
+    def _check_system_stability(self) -> bool:
+        """Sistem stabilite kontrolü yapar."""
+        stability = self.stability_monitor
+        current_time = time.time()
+        
+        # Son başarılı işlemden beri geçen süre
+        time_since_success = current_time - stability['last_successful_processing']
+        
+        # Çok fazla ardışık hata varsa
+        if stability['consecutive_errors'] >= stability['max_consecutive_errors']:
+            self.logger.error(f"❌ Çok fazla ardışık hata: {stability['consecutive_errors']}")
+            return False
+        
+        # Uzun süre başarılı işlem yoksa
+        if time_since_success > stability['stability_threshold']:
+            self.logger.warning(f"⚠️ Uzun süre başarılı işlem yok: {time_since_success:.1f}s")
+            return False
+        
+        return True
+    
+    def _handle_processing_error(self, error: Exception, context: str) -> None:
+        """İşlem hatalarını yönetir ve recovery stratejileri uygular."""
+        stability = self.stability_monitor
+        stability['consecutive_errors'] += 1
+        self.session_stats['error_count'] += 1
+        
+        self.logger.error(f"❌ {context} hatası: {error}")
+        
+        # Auto recovery stratejileri
+        if stability['auto_recovery_enabled']:
+            if stability['consecutive_errors'] >= 3:
+                self.logger.info("🔄 Cache temizliği başlatılıyor...")
+                self.face_detector.clear_cache()
+                
+            if stability['consecutive_errors'] >= 5:
+                self.logger.info("🔄 Kamera resetleniyor...")
+                self.camera_manager.release()
+                time.sleep(0.5)
+                self.camera_manager.initialize()
+    
+    def _mark_successful_processing(self) -> None:
+        """Başarılı işlem sonrası stabilite metriklerini günceller."""
+        stability = self.stability_monitor
+        stability['consecutive_errors'] = 0
+        stability['last_successful_processing'] = time.time()
+    
+    def _adaptive_frame_processing(self, frame: np.ndarray, current_fps: float) -> Tuple[List, List]:
+        """Adaptive frame processing - FPS'e göre işlem yoğunluğunu ayarlar."""
+        faces = []
+        results = []
+        
+        try:
+            monitor = self.performance_monitor
+            
+            # Düşük FPS'de frame atlama
+            if monitor['error_recovery_mode'] or current_fps < monitor['min_fps']:
+                monitor['frame_skip_counter'] += 1
+                if monitor['frame_skip_counter'] % 2 != 0:  # Her ikinci frame'i atla
+                    return faces, results
+            
+            # Normal işleme
+            faces = self.face_detector.detect_faces_opencv_optimized(frame, use_cache=True)
+            
+            if faces:
+                # Sadece algılanan yüzlerin encoding'lerini al
+                face_locations = [(y, x+w, y+h, x) for x, y, w, h in faces]
+                
+                # Recovery mode'da daha az jitter kullan
+                jitters = 0 if monitor['error_recovery_mode'] else 1
+                
+                face_encodings = self.face_detector.get_face_encodings_optimized(frame, face_locations)
+                
+                # Tanıma yap
+                if face_encodings:
+                    results = self.face_recognizer.recognize_faces(face_encodings)
+                    self.session_stats['recognition_attempts'] += len(results)
+            
+            self._mark_successful_processing()
+            
+        except Exception as e:
+            self._handle_processing_error(e, "Frame işleme")
+        
+        return faces, results
     
     @log_execution_time('app')
     def register_user(self, name: str, sample_count: int = None) -> bool:
@@ -259,56 +426,42 @@ class OptimizedFaceRecognitionApp:
     
     @log_execution_time('app')
     def start_recognition(self) -> None:
-        """Optimize edilmiş gerçek zamanlı yüz tanıma."""
+        """Ultra-optimize edilmiş adaptive gerçek zamanlı yüz tanıma."""
         if self.face_recognizer.get_known_faces_count() == 0:
             self.logger.warning("⚠️  Kayıtlı kullanıcı yok! Önce kullanıcı kaydedin.")
             return
         
-        self.logger.info("🎯 Yüz tanıma başlatılıyor...")
+        self.logger.info("🎯 Adaptive yüz tanıma başlatılıyor...")
         
         if not self.camera_manager.initialize():
             self.logger.error("❌ Kamera başlatılamadı!")
             return
         
-        # Performance tracking
+        # Enhanced Performance tracking
         fps_counter = 0
         fps_start_time = time.time()
         last_recognition_result = None
+        stability_check_interval = 30  # 30 frame'de bir stabilite kontrolü
         
         try:
             while True:
-                frame = self.camera_manager.capture_frame()
+                # Stabilite kontrolü
+                if fps_counter % stability_check_interval == 0:
+                    if not self._check_system_stability():
+                        self.logger.warning("⚠️ Sistem instabil, recovery stratejileri uygulanıyor...")
+                        continue
+                
+                # Frame capture with buffer management
+                raw_frame = self.camera_manager.capture_frame()
+                frame = self._manage_frame_buffer(raw_frame)
+                
                 if frame is None:
                     continue
                 
-                # Frame boyutu kontrolü
-                if frame.shape[0] <= 0 or frame.shape[1] <= 0:
-                    continue
-                
+                self.session_stats['total_frames'] += 1
                 frame_start_time = time.time()
                 
-                # Optimize yüz tespiti
-                faces = self.face_detector.detect_faces_opencv_optimized(frame, use_cache=True)
-                
-                results = []
-                if faces:
-                    # Sadece algılanan yüzlerin encoding'lerini al
-                    face_locations = [(y, x+w, y+h, x) for x, y, w, h in faces]  # Convert format
-                    face_encodings = self.face_detector.get_face_encodings_optimized(frame, face_locations)
-                    
-                    # Tanıma yap
-                    results = self.face_recognizer.recognize_faces(face_encodings)
-                    self.session_stats['recognition_attempts'] += len(results)
-                    
-                    # Son tanıma sonucunu kaydet
-                    if results:
-                        last_recognition_result = {
-                            'name': results[0].user_name if results[0].is_match else 'Unknown',
-                            'confidence': results[0].confidence,
-                            'is_match': results[0].is_match
-                        }
-                
-                # Performance hesaplamaları
+                # Performance hesaplamaları (önce)
                 fps_counter += 1
                 current_time = time.time()
                 
@@ -321,25 +474,51 @@ class OptimizedFaceRecognitionApp:
                     elapsed = current_time - fps_start_time
                     current_fps = fps_counter / elapsed if elapsed > 0 and fps_counter > 0 else 0
                 
-                frame_time = (current_time - frame_start_time) * 1000
+                # Adaptive frame processing
+                faces, results = self._adaptive_frame_processing(frame, current_fps)
+                
+                # Son tanıma sonucunu kaydet
+                if results:
+                    last_recognition_result = {
+                        'name': results[0].user_name if results[0].is_match else 'Bilinmeyen',
+                        'confidence': results[0].confidence,
+                        'is_match': results[0].is_match
+                    }
+                
+                # Frame processing time
+                frame_time = (time.time() - frame_start_time) * 1000
+                
+                # Performance metrics güncelle
+                import psutil
+                memory_mb = psutil.Process().memory_info().rss / 1024 / 1024
+                self._update_performance_metrics(frame_time, current_fps, memory_mb)
+                
+                # Cache statistikleri
                 cache_stats = self.face_detector.get_performance_stats()
                 
-                # Dashboard UI çiz - Güvenli işleme
+                # Enhanced Dashboard UI with stability info
                 try:
                     fps_data = {
                         'fps': current_fps,
                         'frame_time': frame_time,
                         'users': self.face_recognizer.get_known_faces_count(),
                         'faces': len(faces),
-                        'cache_hits': cache_stats.get('cache_hits', 0),
-                        'memory': cache_stats.get('memory_usage', 0)
+                        'cache_hits': cache_stats.get('cache_size', 0),
+                        'memory': memory_mb,
+                        'recovery_mode': self.performance_monitor['error_recovery_mode'],
+                        'dropped_frames': self.session_stats['dropped_frames'],
+                        'total_frames': self.session_stats['total_frames']
                     }
                     
                     recognition_data = {
-                        'last_recognition': last_recognition_result
+                        'last_recognition': last_recognition_result,
+                        'stability': {
+                            'errors': self.stability_monitor['consecutive_errors'],
+                            'success_time': time.time() - self.stability_monitor['last_successful_processing']
+                        }
                     }
                     
-                    # Frame boyutu kontrolü
+                    # Safe UI rendering
                     if frame.shape[0] > 0 and frame.shape[1] > 0:
                         frame = self._draw_dashboard_ui(frame, fps_data, recognition_data=recognition_data)
                         
@@ -347,42 +526,65 @@ class OptimizedFaceRecognitionApp:
                         if frame.shape[0] > 0 and frame.shape[1] > 0:
                             frame = self._draw_face_overlay(frame, faces, results, mode='recognition')
                     
-                    # Final boyut kontrolü ve gösterim
+                    # Final display
                     if frame.shape[0] > 0 and frame.shape[1] > 0:
-                        cv2.imshow('Face Recognition - Professional Dashboard', frame)
+                        cv2.imshow('Ultra-Optimized Face Recognition', frame)
                     else:
-                        self.logger.warning("⚠️ Recognition: Frame boyutu geçersiz")
+                        self.logger.debug("⚠️ Frame boyutu geçersiz, atlanıyor")
                         
                 except Exception as ui_error:
-                    self.logger.error(f"❌ Recognition UI hatası: {ui_error}")
-                    # Fallback: basit gösterim
-                    if frame.shape[0] > 0 and frame.shape[1] > 0:
-                        cv2.imshow('Face Recognition - Professional Dashboard', frame)
+                    self._handle_processing_error(ui_error, "UI rendering")
+                    # Minimal fallback
+                    try:
+                        cv2.imshow('Ultra-Optimized Face Recognition', frame)
+                    except:
+                        pass
                 
+                # Enhanced keyboard controls
                 key = cv2.waitKey(1) & 0xFF
                 
                 if key == ord('q'):
                     break
                 elif key == ord('r'):
-                    # Cache reset
+                    # Full system reset
                     self.face_detector.clear_cache()
-                    self.logger.info("🔄 Cache temizlendi.")
+                    self.performance_monitor['error_recovery_mode'] = False
+                    self.stability_monitor['consecutive_errors'] = 0
+                    self.logger.info("🔄 Sistem sıfırlandı.")
                 elif key == ord('s') and faces:
-                    # Screenshot
+                    # Enhanced screenshot with metadata
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                     screenshot_path = f"screenshots/recognition_{timestamp}.jpg"
                     os.makedirs("screenshots", exist_ok=True)
                     cv2.imwrite(screenshot_path, frame)
-                    self.logger.info(f"📸 Screenshot kaydedildi: {screenshot_path}")
+                    
+                    # Save metadata
+                    metadata = {
+                        'timestamp': timestamp,
+                        'faces_count': len(faces),
+                        'recognition_results': [r.__dict__ for r in results] if results else [],
+                        'fps': current_fps,
+                        'memory_mb': memory_mb
+                    }
+                    import json
+                    with open(f"screenshots/metadata_{timestamp}.json", 'w') as f:
+                        json.dump(metadata, f, indent=2, default=str)
+                    
+                    self.logger.info(f"📸 Screenshot ve metadata kaydedildi: {screenshot_path}")
+                elif key == ord('a'):
+                    # Toggle adaptive mode
+                    self.performance_monitor['adaptive_quality'] = not self.performance_monitor['adaptive_quality']
+                    status = "açık" if self.performance_monitor['adaptive_quality'] else "kapalı"
+                    self.logger.info(f"🔧 Adaptive mode: {status}")
         
         except Exception as e:
-            self.logger.error(f"❌ Tanıma sırasında hata: {e}")
+            self._handle_processing_error(e, "Ana recognition loop")
         
         finally:
             cv2.destroyAllWindows()
             self.camera_manager.release()
-            self._save_session_stats()
-            self.logger.info("👋 Yüz tanıma durduruldu.")
+            self._save_enhanced_session_stats()
+            self.logger.info("👋 Ultra-optimized yüz tanıma durduruldu.")
     
     def _save_session_stats(self):
         """Session istatistiklerini kaydet."""
@@ -393,6 +595,47 @@ class OptimizedFaceRecognitionApp:
         self.logger.info(f"  İşlenen kullanıcı: {self.session_stats['users_processed']}")
         self.logger.info(f"  Algılanan yüz: {self.session_stats['faces_detected']}")
         self.logger.info(f"  Tanıma denemesi: {self.session_stats['recognition_attempts']}")
+        
+        # Performance raporu kaydet
+        self.logger_manager.save_performance_report()
+
+    def _save_enhanced_session_stats(self):
+        """Enhanced session istatistiklerini kaydet."""
+        session_duration = time.time() - self.session_stats['start_time']
+        
+        # Enhanced istatistikler
+        total_frames = self.session_stats['total_frames']
+        dropped_frames = self.session_stats['dropped_frames']
+        error_count = self.session_stats['error_count']
+        
+        success_rate = ((total_frames - error_count) / total_frames * 100) if total_frames > 0 else 0
+        drop_rate = (dropped_frames / total_frames * 100) if total_frames > 0 else 0
+        
+        # Performance metrikleri
+        monitor = self.performance_monitor
+        avg_fps = sum(monitor['fps_history']) / len(monitor['fps_history']) if monitor['fps_history'] else 0
+        avg_processing_time = sum(monitor['processing_times']) / len(monitor['processing_times']) if monitor['processing_times'] else 0
+        avg_memory = sum(monitor['memory_usage']) / len(monitor['memory_usage']) if monitor['memory_usage'] else 0
+        
+        self.logger.info("📊 Enhanced Session İstatistikleri:")
+        self.logger.info("=" * 50)
+        self.logger.info(f"⏱️  Süre: {session_duration:.1f} saniye")
+        self.logger.info(f"👥 İşlenen kullanıcı: {self.session_stats['users_processed']}")
+        self.logger.info(f"👁️  Algılanan yüz: {self.session_stats['faces_detected']}")
+        self.logger.info(f"🎯 Tanıma denemesi: {self.session_stats['recognition_attempts']}")
+        self.logger.info(f"📺 Toplam frame: {total_frames}")
+        self.logger.info(f"📉 Atılan frame: {dropped_frames} ({drop_rate:.1f}%)")
+        self.logger.info(f"❌ Hata sayısı: {error_count}")
+        self.logger.info(f"✅ Başarı oranı: {success_rate:.1f}%")
+        self.logger.info(f"🎮 Ortalama FPS: {avg_fps:.1f}")
+        self.logger.info(f"⚡ Ortalama işlem süresi: {avg_processing_time:.1f}ms")
+        self.logger.info(f"💾 Ortalama memory: {avg_memory:.1f}MB")
+        self.logger.info(f"🔄 Recovery mode kullanım: {'Evet' if monitor['error_recovery_mode'] else 'Hayır'}")
+        
+        # Stability metrikleri
+        stability = self.stability_monitor
+        self.logger.info(f"🛡️  Son hata: {stability['consecutive_errors']} ardışık")
+        self.logger.info(f"🕐 Son başarılı işlem: {time.time() - stability['last_successful_processing']:.1f}s önce")
         
         # Performance raporu kaydet
         self.logger_manager.save_performance_report()
@@ -446,7 +689,7 @@ class OptimizedFaceRecognitionApp:
 
     def _draw_dashboard_ui(self, frame, fps_data, recognition_data=None, registration_data=None):
         """
-        Professional dashboard UI çizer.
+        Minimal ve temiz dashboard UI çizer.
         
         Args:
             frame: Video frame
@@ -470,166 +713,82 @@ class OptimizedFaceRecognitionApp:
             # Modern color scheme
             colors = {
                 'primary': (240, 180, 50),      # Modern blue
-                'secondary': (200, 200, 200),   # Light gray
                 'success': (50, 205, 50),       # Lime green
                 'warning': (50, 180, 255),      # Orange
                 'danger': (50, 50, 255),        # Red
-                'dark': (30, 30, 30),           # Dark gray
+                'dark': (40, 40, 40),           # Dark gray
                 'white': (255, 255, 255),       # White
                 'black': (0, 0, 0)              # Black
             }
             
-            # 1. Top Status Bar
-            status_height = 60
+            # 1. Minimal Top Bar - Sadece temel bilgiler
+            top_bar_height = 40
             overlay = frame.copy()
-            cv2.rectangle(overlay, (0, 0), (width, status_height), colors['dark'], -1)
-            cv2.addWeighted(frame, 0.3, overlay, 0.7, 0, frame)
+            cv2.rectangle(overlay, (0, 0), (width, top_bar_height), colors['dark'], -1)
+            cv2.addWeighted(frame, 0.7, overlay, 0.3, 0, frame)
             
-            # Status bar content
-            app_title = "Face Recognition System v2.0.2"
-            cv2.putText(frame, app_title, (15, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, colors['primary'], 2)
-            
-            # Current time
-            current_time = datetime.now().strftime("%H:%M:%S")
-            time_text = f"Time: {current_time}"
-            cv2.putText(frame, time_text, (width - 150, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.6, colors['white'], 1)
-            
-            # 2. Performance Panel (Right Side)
-            panel_width = 300
-            panel_height = 250
-            panel_x = width - panel_width - 10
-            panel_y = status_height + 10
-            
-            # Panel background
-            overlay = frame.copy()
-            cv2.rectangle(overlay, (panel_x, panel_y), (panel_x + panel_width, panel_y + panel_height), colors['dark'], -1)
-            cv2.addWeighted(frame, 0.8, overlay, 0.2, 0, frame)
-            
-            # Panel border
-            cv2.rectangle(frame, (panel_x, panel_y), (panel_x + panel_width, panel_y + panel_height), colors['primary'], 2)
-            
-            # Panel title
-            cv2.putText(frame, "PERFORMANCE MONITOR", (panel_x + 10, panel_y + 30), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, colors['primary'], 2)
-            
-            # FPS Gauge
-            gauge_x = panel_x + 20
-            gauge_y = panel_y + 50
-            gauge_width = 260
-            gauge_height = 25
-            
-            # FPS status and color
-            current_fps = fps_data.get('fps', 0)
-            if current_fps >= 20:
-                fps_color = colors['success']
-                fps_status = "EXCELLENT"
-            elif current_fps >= 15:
-                fps_color = colors['warning']
-                fps_status = "GOOD"
-            elif current_fps >= 10:
-                fps_color = (100, 180, 255)  # Light orange
-                fps_status = "FAIR"
-            else:
-                fps_color = colors['danger']
-                fps_status = "POOR"
-            
-            # FPS Gauge background
-            cv2.rectangle(frame, (gauge_x, gauge_y), (gauge_x + gauge_width, gauge_y + gauge_height), colors['black'], -1)
-            cv2.rectangle(frame, (gauge_x, gauge_y), (gauge_x + gauge_width, gauge_y + gauge_height), colors['secondary'], 2)
-            
-            # FPS Gauge fill
-            max_fps = 30
-            progress = min(current_fps / max_fps, 1.0)
-            fill_width = int(gauge_width * progress)
-            cv2.rectangle(frame, (gauge_x + 2, gauge_y + 2), (gauge_x + fill_width - 2, gauge_y + gauge_height - 2), fps_color, -1)
-            
-            # FPS Text
-            fps_text = f"FPS: {current_fps:.1f} ({fps_status})"
-            cv2.putText(frame, fps_text, (gauge_x + 10, gauge_y + 17), cv2.FONT_HERSHEY_SIMPLEX, 0.5, colors['white'], 1)
-            
-            # Performance metrics
-            metrics_y = gauge_y + 45
-            metrics = [
-                f"Frame Time: {fps_data.get('frame_time', 0):.1f}ms",
-                f"Users Loaded: {fps_data.get('users', 0)}",
-                f"Cache Hits: {fps_data.get('cache_hits', 0)}",
-                f"Memory: {fps_data.get('memory', 0):.1f}MB",
-                f"Detection Count: {fps_data.get('faces', 0)}"
-            ]
-            
-            for i, metric in enumerate(metrics):
-                y_pos = metrics_y + i * 22
-                cv2.putText(frame, metric, (panel_x + 15, y_pos), cv2.FONT_HERSHEY_SIMPLEX, 0.45, colors['secondary'], 1)
-            
-            # 3. Control Panel (Bottom)
-            control_height = 80
-            control_y = height - control_height
-            
-            # Control panel background
-            overlay = frame.copy()
-            cv2.rectangle(overlay, (0, control_y), (width, height), colors['dark'], -1)
-            cv2.addWeighted(frame, 0.3, overlay, 0.7, 0, frame)
-            
-            # Control buttons
-            if recognition_data:
-                # Recognition mode controls
-                controls = [
-                    ("Q - Quit", colors['danger']),
-                    ("R - Reset Cache", colors['warning']),
-                    ("S - Screenshot", colors['success'])
-                ]
-            else:
-                # Registration mode controls
-                controls = [
-                    ("S - Capture Sample", colors['success']),
-                    ("Q - Quit Registration", colors['danger']),
-                    ("Space - Skip Sample", colors['warning'])
-                ]
-            
-            button_width = 180
-            button_spacing = 20
-            start_x = (width - (len(controls) * (button_width + button_spacing) - button_spacing)) // 2
-            
-            for i, (text, color) in enumerate(controls):
-                button_x = start_x + i * (button_width + button_spacing)
-                button_y = control_y + 15
-                button_height = 35
-                
-                # Button background
-                cv2.rectangle(frame, (button_x, button_y), (button_x + button_width, button_y + button_height), color, -1)
-                cv2.rectangle(frame, (button_x, button_y), (button_x + button_width, button_y + button_height), colors['white'], 2)
-                
-                # Button text
-                text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)[0]
-                text_x = button_x + (button_width - text_size[0]) // 2
-                text_y = button_y + (button_height + text_size[1]) // 2
-                cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, colors['white'], 2)
-            
-            # 4. Mode indicator (Top right corner)
+            # Mod göstergesi (sol üst)
             mode = registration_data['mode'] if registration_data else 'RECOGNITION'
             mode_color = colors['warning'] if mode == 'REGISTRATION' else colors['success']
-            cv2.putText(frame, f"MODE: {mode}", (width - 200, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, mode_color, 2)
+            cv2.putText(frame, mode, (15, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.7, mode_color, 2)
             
-            # 5. Registration specific UI
+            # FPS göstergesi (sağ üst) - adaptive mode dahil
+            current_fps = fps_data.get('fps', 0)
+            recovery_mode = fps_data.get('recovery_mode', False)
+            
+            # FPS rengi - recovery mode'da turuncu
+            if recovery_mode:
+                fps_color = colors['warning']
+                fps_text = f"FPS: {current_fps:.0f} (A)"  # A = Adaptive
+            else:
+                fps_color = colors['success'] if current_fps >= 20 else colors['warning'] if current_fps >= 10 else colors['danger']
+                fps_text = f"FPS: {current_fps:.0f}"
+                
+            cv2.putText(frame, fps_text, (width - 120, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, fps_color, 1)
+            
+            # 2. Registration specific minimal UI
             if registration_data:
-                # Progress indicator
-                progress_text = f"Sample {registration_data['current']}/{registration_data['total']}"
-                cv2.putText(frame, progress_text, (15, height - control_height - 20), 
+                # Sadece progress göster (sol alt)
+                progress_text = f"{registration_data['current']}/{registration_data['total']}"
+                cv2.putText(frame, progress_text, (15, height - 60), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, colors['primary'], 2)
                 
-                # User name
-                user_text = f"Registering: {registration_data['name']}"
-                cv2.putText(frame, user_text, (15, status_height + 30), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.7, colors['primary'], 2)
+                # Kullanıcı adı (alt merkez)
+                user_text = f"Kayit: {registration_data['name']}"
+                text_size = cv2.getTextSize(user_text, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)[0]
+                text_x = (width - text_size[0]) // 2
+                cv2.putText(frame, user_text, (text_x, height - 60), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.7, colors['white'], 2)
+                
+                # Minimal kontrol ipucu (sağ alt)
+                cv2.putText(frame, "S: Cek", (width - 80, height - 60), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, colors['white'], 1)
+                cv2.putText(frame, "Q: Cik", (width - 80, height - 40), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, colors['white'], 1)
             
-            # 6. Recognition specific UI
+            # 3. Recognition specific minimal UI
             if recognition_data and recognition_data.get('last_recognition'):
-                # Last recognition result
+                # Son tanıma sonucu (alt merkez)
                 last_result = recognition_data['last_recognition']
                 result_color = colors['success'] if last_result.get('is_match') else colors['danger']
-                result_text = f"Last: {last_result.get('name', 'Unknown')} ({last_result.get('confidence', 0):.2f})"
-                cv2.putText(frame, result_text, (15, status_height + 30), 
+                result_text = f"{last_result.get('name', 'Bilinmeyen')} ({last_result.get('confidence', 0):.2f})"
+                text_size = cv2.getTextSize(result_text, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)[0]
+                text_x = (width - text_size[0]) // 2
+                cv2.putText(frame, result_text, (text_x, height - 40), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, result_color, 2)
+                
+                # Minimal kontrol ipucu (sağ alt)
+                cv2.putText(frame, "Q: Cik", (width - 60, height - 20), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, colors['white'], 1)
+                
+                cv2.putText(frame, "R: Reset", (width - 130, height - 20), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, colors['white'], 1)
+                
+                cv2.putText(frame, "S: Cek", (width - 190, height - 20), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, colors['white'], 1)
+                
+                cv2.putText(frame, "A: Auto", (width - 250, height - 20), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, colors['white'], 1)
             
             return frame
         
@@ -639,7 +798,7 @@ class OptimizedFaceRecognitionApp:
     
     def _draw_face_overlay(self, frame, faces, results=None, mode='recognition'):
         """
-        Yüz çerçeveleri ve etiketleri çizer.
+        Yüz çerçeveleri ve minimal etiketleri çizer.
         
         Args:
             frame: Video frame
@@ -665,10 +824,9 @@ class OptimizedFaceRecognitionApp:
             
             for i, (x, y, w, h) in enumerate(faces):
                 if mode == 'registration':
-                    # Registration mode - simple green boxes
+                    # Registration mode - basit yeşil çerçeve
                     color = colors['success']
-                    label = f"Face {i+1}"
-                    confidence_text = ""
+                    label = ""  # Kayıt modunda yazı yok
                 else:
                     # Recognition mode
                     if results and i < len(results):
@@ -676,59 +834,42 @@ class OptimizedFaceRecognitionApp:
                         if result.is_match:
                             color = colors['success']
                             label = result.user_name
-                            confidence_text = f" ({result.confidence:.2f})"
                         else:
                             color = colors['danger']
-                            label = "Unknown"
-                            confidence_text = f" ({result.confidence:.2f})"
+                            label = "?"
                     else:
                         color = colors['warning']
-                        label = "Processing..."
-                        confidence_text = ""
+                        label = "..."
                 
-                # Enhanced face box with corners
-                thickness = 3
-                corner_length = 20
-                
-                # Main rectangle
+                # Basit çerçeve çiz
+                thickness = 2
                 cv2.rectangle(frame, (x, y), (x + w, y + h), color, thickness)
                 
-                # Corner accents
-                # Top-left
-                cv2.line(frame, (x, y), (x + corner_length, y), color, thickness + 2)
-                cv2.line(frame, (x, y), (x, y + corner_length), color, thickness + 2)
-                
-                # Top-right
-                cv2.line(frame, (x + w, y), (x + w - corner_length, y), color, thickness + 2)
-                cv2.line(frame, (x + w, y), (x + w, y + corner_length), color, thickness + 2)
-                
-                # Bottom-left
-                cv2.line(frame, (x, y + h), (x + corner_length, y + h), color, thickness + 2)
-                cv2.line(frame, (x, y + h), (x, y + h - corner_length), color, thickness + 2)
-                
-                # Bottom-right
-                cv2.line(frame, (x + w, y + h), (x + w - corner_length, y + h), color, thickness + 2)
-                cv2.line(frame, (x + w, y + h), (x + w, y + h - corner_length), color, thickness + 2)
-                
-                # Label background
-                label_text = f"{label}{confidence_text}"
-                text_size = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)[0]
-                label_bg_x1 = x
-                label_bg_y1 = y - 35
-                label_bg_x2 = x + text_size[0] + 10
-                label_bg_y2 = y - 5
-                
-                # Ensure label is within frame
-                if label_bg_y1 < 0:
-                    label_bg_y1 = y + h + 5
-                    label_bg_y2 = y + h + 35
-                
-                cv2.rectangle(frame, (label_bg_x1, label_bg_y1), (label_bg_x2, label_bg_y2), color, -1)
-                cv2.rectangle(frame, (label_bg_x1, label_bg_y1), (label_bg_x2, label_bg_y2), (255, 255, 255), 2)
-                
-                # Label text
-                text_y = label_bg_y1 + 20 if label_bg_y1 > 0 else label_bg_y1 + 25
-                cv2.putText(frame, label_text, (x + 5, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                # Sadece recognition modunda ve eğer label varsa yazı göster
+                if mode == 'recognition' and label:
+                    # Küçük yazı etiketi - sadece üst kısımda
+                    font_scale = 0.6
+                    font_thickness = 1
+                    text_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, font_scale, font_thickness)[0]
+                    
+                    # Etiket pozisyonu
+                    label_x = x
+                    label_y = y - 10
+                    
+                    # Eğer etiket frame dışına çıkıyorsa, kutunun içine al
+                    if label_y < 15:
+                        label_y = y + 20
+                    
+                    # Yazı arkaplanı (küçük)
+                    padding = 3
+                    cv2.rectangle(frame, 
+                                (label_x - padding, label_y - text_size[1] - padding), 
+                                (label_x + text_size[0] + padding, label_y + padding), 
+                                color, -1)
+                    
+                    # Yazı
+                    cv2.putText(frame, label, (label_x, label_y), 
+                              cv2.FONT_HERSHEY_SIMPLEX, font_scale, (255, 255, 255), font_thickness)
             
             return frame
         
