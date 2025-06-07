@@ -92,8 +92,8 @@ dev: ## Geliştirme modunda çalıştır (debug logs)
 	@$(PYTHON) -c "from config.app_config import get_config_manager; cm = get_config_manager(); cm.update_config(**{'system.log_level': 'DEBUG'})"
 	@echo "$(GREEN)✅ Debug log seviyesi aktif$(NC)"
 
-benchmark: ## Performance benchmarkı çalıştır
-	@echo "$(BLUE)⚡ Performance benchmark başlatılıyor...$(NC)"
+benchmark: ## Ultra-optimized performance benchmark çalıştır
+	@echo "$(BLUE)⚡ Ultra-Optimized Performance benchmark başlatılıyor...$(NC)"
 	@if [ ! -d "$(VENV_NAME)" ]; then echo "$(RED)❌ Önce 'make install' çalıştırın$(NC)"; exit 1; fi
 	@$(PYTHON) scripts/benchmark.py
 
