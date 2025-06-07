@@ -1,0 +1,52 @@
+{
+  "memory_stress": {
+    "duration": 30,
+    "frames_processed": 3502,
+    "errors": 0,
+    "fps": 116.73333333333333,
+    "initial_memory_mb": 176.65625,
+    "final_memory_mb": 314.578125,
+    "memory_leak_mb": 137.921875,
+    "peak_memory_mb": 314.578125,
+    "avg_memory_mb": 310.7075892857143
+  },
+  "adaptive_performance": {
+    "High Load": {
+      "total_time_s": 0.9566330909729004,
+      "frames": 50,
+      "fps": 52.266642740896366,
+      "avg_processing_time_ms": 14.676933288574219,
+      "min_processing_time_ms": 13.923883438110352,
+      "max_processing_time_ms": 22.00794219970703,
+      "cache_hit_rate": 100.0,
+      "cache_effectiveness": true
+    },
+    "Mixed Load": {
+      "total_time_s": 0.47957801818847656,
+      "frames": 50,
+      "fps": 104.25832315848503,
+      "avg_processing_time_ms": 8.229308128356934,
+      "min_processing_time_ms": 6.8950653076171875,
+      "max_processing_time_ms": 9.63592529296875,
+      "cache_hit_rate": 100.0,
+      "cache_effectiveness": true
+    },
+    "Low Load": {
+      "total_time_s": 0.1212012767791748,
+      "frames": 50,
+      "fps": 412.5369082629265,
+      "avg_processing_time_ms": 2.2156190872192383,
+      "min_processing_time_ms": 2.067089080810547,
+      "max_processing_time_ms": 3.008127212524414,
+      "cache_hit_rate": 100.0,
+      "cache_effectiveness": true
+    }
+  },
+  "stability": {
+    "error_recovery": true,
+    "cache_stability": true,
+    "memory_stability": false,
+    "performance_stability": false
+  },
+  "overall_score": 72.5
+}
