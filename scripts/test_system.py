@@ -391,10 +391,10 @@ class AdvancedTestSuite:
             (self.test_file_manager_security, "Dosya Güvenliği"),
             (self.test_memory_leak_detection, "Memory Leak Testi"),
             (self.test_concurrent_operations, "Eşzamanlı İşlemler")
-        ]
-        
+    ]
+    
         print(f"📊 Toplam {len(test_cases)} test çalıştırılacak\n")
-        
+    
         for test_func, test_name in test_cases:
             print(f"🧪 {test_name}...", end=" ")
             result = self.run_test(test_func, test_name)
@@ -420,7 +420,7 @@ class AdvancedTestSuite:
         print(f"❌ Başarısız: {len(failed_tests)}")
         print(f"⏱️  Toplam Süre: {total_time:.3f} saniye")
         print(f"📊 Başarı Oranı: {len(passed_tests)/len(self.results)*100:.1f}%")
-        
+    
         if failed_tests:
             print("\n❌ BAŞARISIZ TESTLER:")
             for test in failed_tests:
@@ -451,11 +451,11 @@ def main():
         
         if success:
             print("\n🎉 TÜM TESTLER BAŞARILI!")
-            return 0
-        else:
-            print("\n💥 BAZI TESTLER BAŞARISIZ!")
-            return 1
-    
+        return 0
+
+        print("\n💥 BAZI TESTLER BAŞARISIZ!")
+        return 1
+
     except KeyboardInterrupt:
         print("\n⚠️  Test kullanıcı tarafından iptal edildi")
         return 2
