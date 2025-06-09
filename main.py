@@ -14,6 +14,9 @@ from pathlib import Path
 import time
 from tqdm import tqdm
 from typing import List, Optional, Tuple
+import threading
+import termios
+import tty
 
 # Proje root dizinini Python path'ine ekle (scripts dışından çalıştırılırsa)
 PROJECT_ROOT = Path(__file__).parent
@@ -29,6 +32,70 @@ from utils import CameraManager, FileManager
 # Yeni optimize bileşenler
 from config.app_config import get_config, get_config_manager
 from utils.logger import setup_logging, get_logger, log_execution_time
+
+
+class KeyboardHandler:
+    """Terminal klavye girişlerini yöneten yardımcı sınıf."""
+    
+    @staticmethod
+    def get_char():
+        """Terminal'dan tek karakter okur (Cross-platform)."""
+        if os.name == 'nt':  # Windows
+            try:
+                import msvcrt
+                return msvcrt.getch().decode('utf-8')
+            except:
+                return input("Tuş girin: ")[:1]
+        else:  # Unix/Linux/macOS
+            try:
+                fd = sys.stdin.fileno()
+                old_settings = termios.tcgetattr(fd)
+                try:
+                    tty.cbreak(fd)
+                    ch = sys.stdin.read(1)
+                    return ch
+                finally:
+                    termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+            except:
+                return input("Tuş girin: ")[:1]
+    
+    @staticmethod
+    def get_arrow_key():
+        """Ok tuşlarını algılar ve yön döndürür (Cross-platform)."""
+        if os.name == 'nt':  # Windows
+            try:
+                import msvcrt
+                ch = msvcrt.getch()
+                if ch == b'\xe0':  # Windows özel tuş prefix'i
+                    ch = msvcrt.getch()
+                    if ch == b'H':
+                        return 'UP'
+                    elif ch == b'P':
+                        return 'DOWN'
+                    elif ch == b'M':
+                        return 'RIGHT'
+                    elif ch == b'K':
+                        return 'LEFT'
+                return ch.decode('utf-8')
+            except:
+                return input("Komut (w/s/d/q): ")[:1]
+        else:  # Unix/Linux/macOS
+            ch = KeyboardHandler.get_char()
+            
+            if ch == '\x1b':  # ESC sequence başlangıcı
+                ch = KeyboardHandler.get_char()
+                if ch == '[':
+                    ch = KeyboardHandler.get_char()
+                    if ch == 'A':
+                        return 'UP'
+                    elif ch == 'B':
+                        return 'DOWN'
+                    elif ch == 'C':
+                        return 'RIGHT'
+                    elif ch == 'D':
+                        return 'LEFT'
+            
+            return ch
 
 
 class OptimizedFaceRecognitionApp:
@@ -686,6 +753,134 @@ class OptimizedFaceRecognitionApp:
         else:
             print(f"❌ '{name}' silinemedi!")
             return False
+    
+    def interactive_delete_user(self) -> None:
+        """
+        Interaktif kullanıcı silme menüsü.
+        Ok tuşları ile kullanıcılar arasında gezinme ve 'd' tuşu ile silme.
+        """
+        users = self.user_manager.load_all_users()
+        
+        if not users:
+            os.system('clear' if os.name == 'posix' else 'cls')
+            print("🗑️  İNTERAKTİF KULLANICI SİLME MENÜSÜ")
+            print("=" * 50)
+            print("📭 Kayıtlı kullanıcı bulunamadı.")
+            print()
+            print("💡 Önce 'python main.py register --name \"İsim\"' ile kullanıcı kaydedin.")
+            print()
+            print("Çıkmak için bir tuşa basın...")
+            try:
+                KeyboardHandler.get_char()
+            except:
+                pass
+            return
+        
+        selected_index = 0
+        
+        while True:
+            # Ekranı temizle
+            os.system('clear' if os.name == 'posix' else 'cls')
+            
+            # Başlık
+            print("🗑️  İNTERAKTİF KULLANICI SİLME MENÜSÜ")
+            print("=" * 50)
+            print("📋 Kontroller:")
+            print("   ↑↓ (veya w/s) : Gezinme")
+            print("   d            : Kullanıcıyı sil")
+            print("   q            : Çıkış")
+            print("=" * 50)
+            print()
+            
+            # Kullanıcı listesi
+            print(f"👥 Kayıtlı Kullanıcılar ({len(users)} adet):")
+            print()
+            
+            for i, user in enumerate(users):
+                # Seçili kullanıcıyı işaretle
+                if i == selected_index:
+                    marker = "➤ "
+                    status = "🔸"
+                else:
+                    marker = "  "
+                    status = "👤"
+                
+                print(f"{marker}{status} {user.name}")
+                if i == selected_index:
+                    print(f"     📸 Yüz örnekleri: {len(user.face_encodings)}")
+                    print(f"     📅 Kayıt tarihi: {user.created_at}")
+                print()
+            
+            print("-" * 50)
+            print(f"Seçili: {users[selected_index].name}")
+            print("Komut bekliyor... (↑↓/w/s/d/q)")
+            
+            # Klavye girişini al
+            try:
+                key = KeyboardHandler.get_arrow_key()
+                
+                if key == 'UP' or key.lower() == 'w':
+                    selected_index = (selected_index - 1) % len(users)
+                elif key == 'DOWN' or key.lower() == 's':
+                    selected_index = (selected_index + 1) % len(users)
+                elif key.lower() == 'd':
+                    # Silme onayı
+                    selected_user = users[selected_index]
+                    
+                    # Onay ekranı
+                    os.system('clear' if os.name == 'posix' else 'cls')
+                    print("⚠️  SİLME ONAYI")
+                    print("=" * 30)
+                    print(f"🗑️  Silinecek kullanıcı: {selected_user.name}")
+                    print(f"📸 Yüz örnekleri: {len(selected_user.face_encodings)}")
+                    print(f"📅 Kayıt tarihi: {selected_user.created_at}")
+                    print()
+                    print("Bu işlem geri alınamaz!")
+                    print()
+                    print("y : Evet, sil")
+                    print("n : Hayır, iptal et")
+                    
+                    confirm_key = KeyboardHandler.get_char().lower()
+                    
+                    if confirm_key == 'y':
+                        if self.delete_user(selected_user.name):
+                            # Kullanıcı listesini güncelle
+                            users = self.user_manager.load_all_users()
+                            
+                            if not users:
+                                print("\n📭 Tüm kullanıcılar silindi. Menüden çıkılıyor...")
+                                time.sleep(2)
+                                break
+                            
+                            # Seçili index'i güncelle
+                            if selected_index >= len(users):
+                                selected_index = len(users) - 1
+                            
+                            print("\n✅ Kullanıcı başarıyla silindi!")
+                        else:
+                            print("\n❌ Kullanıcı silinemedi!")
+                        
+                        print("Devam etmek için bir tuşa basın...")
+                        KeyboardHandler.get_char()
+                    else:
+                        print("\n❌ İşlem iptal edildi.")
+                        print("Devam etmek için bir tuşa basın...")
+                        KeyboardHandler.get_char()
+                
+                elif key.lower() == 'q':
+                    print("\n👋 Menüden çıkılıyor...")
+                    break
+                    
+            except KeyboardInterrupt:
+                print("\n\n👋 Menüden çıkılıyor...")
+                break
+            except Exception as e:
+                print(f"\n❌ Klavye hatası: {e}")
+                print("Devam etmek için bir tuşa basın...")
+                try:
+                    KeyboardHandler.get_char()
+                except:
+                    break
 
     def _draw_dashboard_ui(self, frame, fps_data, recognition_data=None, registration_data=None):
         """
@@ -909,16 +1104,27 @@ def list_users():
 
 
 @cli.command()
-@click.option('--name', '-n', required=True, help='Silinecek kullanıcı adı')
+@click.option('--name', '-n', help='Silinecek kullanıcı adı (interaktif menü için boş bırakın)')
 def delete(name: str):
-    """Kullanıcıyı siler"""
+    """Kullanıcıyı siler - isim verilmezse interaktif menü açılır"""
     app = OptimizedFaceRecognitionApp()
     
-    # Onay iste
-    if click.confirm(f"'{name}' adlı kullanıcıyı silmek istediğinizden emin misiniz?"):
-        app.delete_user(name)
+    if name:
+        # Direkt silme (eski yöntem)
+        if click.confirm(f"'{name}' adlı kullanıcıyı silmek istediğinizden emin misiniz?"):
+            app.delete_user(name)
+        else:
+            print("❌ İşlem iptal edildi.")
     else:
-        print("❌ İşlem iptal edildi.")
+        # Interaktif menü (yeni özellik)
+        app.interactive_delete_user()
+
+
+@cli.command('delete-interactive')
+def delete_interactive():
+    """İnteraktif kullanıcı silme menüsünü açar"""
+    app = OptimizedFaceRecognitionApp()
+    app.interactive_delete_user()
 
 
 @cli.command()
