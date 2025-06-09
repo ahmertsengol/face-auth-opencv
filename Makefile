@@ -16,7 +16,7 @@ YELLOW = \033[0;33m
 BLUE = \033[0;34m
 NC = \033[0m # No Color
 
-.PHONY: help install test clean dev setup config optimize status benchmark backup logs monitor menu-delete
+.PHONY: help install test clean dev setup config optimize status benchmark backup logs monitor menu-delete web
 
 # Varsayılan hedef
 all: help
@@ -179,4 +179,10 @@ monitor: ## Sistem monitörü (gerçek zamanlı loglar)
 menu-delete: ## Anlık tuş yanıtlı interaktif kullanıcı silme menüsü
 	@echo "$(BLUE)🎮 İnteraktif kullanıcı silme menüsü başlatılıyor...$(NC)"
 	@if [ ! -d "$(VENV_NAME)" ]; then echo "$(RED)❌ Önce 'make install' çalıştırın$(NC)"; exit 1; fi
-	$(PYTHON) main.py delete-interactive 
+	$(PYTHON) main.py delete-interactive
+
+web: ## FastAPI web dashboard başlat
+	@echo "$(BLUE)🌐 Web dashboard başlatılıyor...$(NC)"
+	@if [ ! -d "$(VENV_NAME)" ]; then echo "$(RED)❌ Önce 'make install' çalıştırın$(NC)"; exit 1; fi
+	@echo "$(YELLOW)📱 Tarayıcıdan http://localhost:8000 adresini açın$(NC)"
+	$(VENV_NAME)/bin/uvicorn api.main:app --reload --host 0.0.0.0 --port 8000 

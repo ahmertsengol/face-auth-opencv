@@ -17,6 +17,14 @@ git+https://github.com/ageitgey/face_recognition_models  # Face recognition mode
 psutil>=5.9.0           # Sistem monitoring
 tqdm>=4.65.0           # Progress bars
 
+# Web API ve Dashboard
+fastapi>=0.104.0        # Modern async web framework
+uvicorn[standard]>=0.24.0  # ASGI server
+jinja2>=3.1.0          # Template engine
+aiofiles>=23.2.0       # Async file operations
+python-multipart>=0.0.6  # File upload support
+websockets>=12.0       # WebSocket support
+
 # Geliştirme araçları (opsiyonel)
 # pytest>=7.0.0
 # black>=23.0.0
