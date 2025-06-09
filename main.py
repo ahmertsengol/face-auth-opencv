@@ -38,6 +38,45 @@ class KeyboardHandler:
     """Terminal klavye girişlerini yöneten yardımcı sınıf."""
     
     @staticmethod
+    def get_instant_confirmation(message: str, default_yes: bool = False) -> bool:
+        """
+        Anlık onay sistemi - Enter gerektirmez.
+        
+        Args:
+            message: Onay mesajı
+            default_yes: Varsayılan değer
+        
+        Returns:
+            True/False
+        """
+        print(f"\033[1m{message}\033[0m")
+        print(f"\033[92my\033[0m = Evet    \033[93mn\033[0m = Hayır")
+        if default_yes:
+            print("\033[90m(Varsayılan: Evet)\033[0m")
+        else:
+            print("\033[90m(Varsayılan: Hayır)\033[0m")
+        print()
+        print("\033[90mSeçiminiz:\033[0m ", end='', flush=True)
+        
+        try:
+            key = KeyboardHandler.get_char().lower()
+            print(key)  # Seçimi göster
+            
+            if key == 'y':
+                return True
+            elif key == 'n':
+                return False
+            else:
+                # Geçersiz tuş - varsayılanı kullan
+                print(f"\033[90mGeçersiz tuş. Varsayılan: {'Evet' if default_yes else 'Hayır'}\033[0m")
+                return default_yes
+                
+        except Exception:
+            # Hata durumunda varsayılanı kullan
+            print(f"\033[90mHata. Varsayılan: {'Evet' if default_yes else 'Hayır'}\033[0m")
+            return default_yes
+    
+    @staticmethod
     def get_char():
         """Terminal'dan tek karakter okur (Cross-platform) - Anlık, enter gerektirmez."""
         if os.name == 'nt':  # Windows
@@ -45,8 +84,9 @@ class KeyboardHandler:
                 import msvcrt
                 return msvcrt.getch().decode('utf-8', errors='ignore')
             except Exception:
-                # Windows fallback
-                return input("Komut: ")[:1]
+                # Windows fallback - Anlık hatayı çöz
+                print("\033[91m⚠️ Windows klavye hatası\033[0m")
+                return 'x'  # Geçersiz karakter döndür
         else:  # Unix/Linux/macOS
             try:
                 fd = sys.stdin.fileno()
@@ -76,8 +116,9 @@ class KeyboardHandler:
                     termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, old_settings)
                     return ch
                 except:
-                    # Son çare fallback
-                    return input("Komut: ")[:1]
+                    # Son çare fallback - Anlık çözüm
+                    print("\033[91m⚠️ Unix terminal hatası\033[0m")
+                    return 'x'  # Geçersiz karakter döndür
     
     @staticmethod
     def get_arrow_key():
@@ -98,9 +139,9 @@ class KeyboardHandler:
                         return 'LEFT'
                 return ch.decode('utf-8', errors='ignore')
             except Exception:
-                # Windows fallback - sadece hata durumunda
-                print("\n⚠️ Klavye hatası - lütfen komut girin")
-                return input("(w/s/d/q): ")[:1]
+                # Windows fallback - Anlık hata çözümü
+                print("\033[91m⚠️ Windows ok tuşu hatası\033[0m")
+                return 'x'  # Geçersiz karakter döndür
         else:  # Unix/Linux/macOS
             ch = KeyboardHandler.get_char()
             
@@ -796,11 +837,8 @@ class OptimizedFaceRecognitionApp:
             print()
             print("💡 Önce 'python main.py register --name \"İsim\"' ile kullanıcı kaydedin.")
             print()
-            print("Çıkmak için bir tuşa basın...")
-            try:
-                KeyboardHandler.get_char()
-            except:
-                pass
+            print("\033[90mOtomatik olarak çıkılıyor...\033[0m")
+            time.sleep(1.0)  # Kullanıcıya okuma fırsatı ver
             return
         
         selected_index = 0
@@ -1175,13 +1213,13 @@ def delete(name: str):
     app = OptimizedFaceRecognitionApp()
     
     if name:
-        # Direkt silme (eski yöntem)
-        if click.confirm(f"'{name}' adlı kullanıcıyı silmek istediğinizden emin misiniz?"):
+        # Direkt silme (anlık onay sistemi)
+        if KeyboardHandler.get_instant_confirmation(f"⚠️ '{name}' adlı kullanıcıyı silmek istediğinizden emin misiniz?"):
             app.delete_user(name)
         else:
-            print("❌ İşlem iptal edildi.")
+            print("\033[93m❌ İşlem iptal edildi.\033[0m")
     else:
-        # Interaktif menü (yeni özellik)
+        # Interaktif menü
         app.interactive_delete_user()
 
 
