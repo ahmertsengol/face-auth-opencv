@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Yüz Tanıma Sistemi</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Chart.js - UMD Version for compatibility -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    
+    <!-- Custom CSS -->
+    <link href="/static/css/dashboard.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-camera-fill"></i>
+                Face Recognition Dashboard
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/"><i class="bi bi-house"></i> Ana Sayfa</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#users"><i class="bi bi-people"></i> Kullanıcılar</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#stats"><i class="bi bi-graph-up"></i> İstatistikler</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#live"><i class="bi bi-camera-video"></i> Canlı Tanıma</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Dashboard -->
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="bi bi-speedometer2"></i> Sistem Durumu</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="badge bg-success me-2">●</span>
+                            <span>Sistem Aktif</span>
+                        </div>
+                        <div class="row text-center">
+                            <div class="col-12 mb-2">
+                                <h4 class="text-primary" id="total-users">{{ total_users }}</h4>
+                                <small class="text-muted">Kayıtlı Kullanıcı</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-lightning"></i> Hızlı Eylemler</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary btn-sm" onclick="startRecognition()">
+                                <i class="bi bi-play"></i> Tanıma Başlat
+                            </button>
+                            <button class="btn btn-success btn-sm" onclick="showAddUser()">
+                                <i class="bi bi-person-plus"></i> Kullanıcı Ekle
+                            </button>
+                            <button class="btn btn-info btn-sm" onclick="refreshStats()">
+                                <i class="bi bi-arrow-clockwise"></i> Yenile
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9">
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card text-center border-primary">
+                            <div class="card-body">
+                                <i class="bi bi-people display-4 text-primary"></i>
+                                <h3 class="mt-2" id="stat-users">-</h3>
+                                <p class="text-muted">Toplam Kullanıcı</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center border-success">
+                            <div class="card-body">
+                                <i class="bi bi-image display-4 text-success"></i>
+                                <h3 class="mt-2" id="stat-encodings">-</h3>
+                                <p class="text-muted">Yüz Örneği</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center border-info">
+                            <div class="card-body">
+                                <i class="bi bi-graph-up display-4 text-info"></i>
+                                <h3 class="mt-2" id="stat-avg">-</h3>
+                                <p class="text-muted">Ort. Örnek/Kullanıcı</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Users Table -->
+                <div class="card mb-4" id="users">
+                    <div class="card-header">
+                        <h5><i class="bi bi-people"></i> Kayıtlı Kullanıcılar</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="users-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ad</th>
+                                        <th>Yüz Örnekleri</th>
+                                        <th>Kayıt Tarihi</th>
+                                        <th>İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-tbody">
+                                    <tr>
+                                        <td colspan="4" class="text-center">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Yükleniyor...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Recognition Area (Placeholder) -->
+                <div class="card" id="live">
+                    <div class="card-header">
+                        <h5><i class="bi bi-camera-video"></i> Canlı Yüz Tanıma</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            Canlı tanıma özelliği yakında eklenecek...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html> 
