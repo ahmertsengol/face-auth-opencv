@@ -13,6 +13,7 @@ Python ve OpenCV ile geliştirilmiş **enterprise-seviye** yüz tanıma sistemi.
 - 🧪 **Kapsamlı Test Sistemi** - %100 test coverage
 - 🔧 **Otomatik Optimizasyon** - Cache, memory management
 - 📈 **Benchmark Araçları** - Performance profiling
+- 🎮 **Anlık Tuş Yanıtlı İnteraktif Silme Menüsü** - Ok tuşlarıyla gezin, d ile sil, y/n ile onay, enter gerekmez
 
 ## ⚡ **Hızlı Başlangıç**
 
@@ -50,6 +51,13 @@ make delete USER=isim        # Kullanıcı sil
 make status                  # Sistem durumu
 ```
 
+### **🗑️ Anlık İnteraktif Kullanıcı Silme**
+```bash
+make menu-delete
+# → Ok tuşları ile kullanıcı seç, d ile sil, y/n ile onayla, q ile çık
+# → Tüm işlemler anlık, enter tuşuna basmak gerekmez!
+```
+
 ## 🛠️ **Gelişmiş Komutlar**
 
 | Komut | Açıklama |
@@ -59,6 +67,7 @@ make status                  # Sistem durumu
 | `make optimize` | Cache temizlik + optimizasyon |
 | `make backup` | Veri yedekleme |
 | `make logs` | Log dosyalarını görüntüle |
+| `make menu-delete` | Anlık tuş yanıtlı interaktif kullanıcı silme menüsü |
 
 ## 📈 **Performans**
 
@@ -95,6 +104,10 @@ make status                  # Sistem durumu
 | Çıkış | `q` | Uygulamayı kapat |
 | Reset | `r` | Cache & sistem reset |
 | Adaptive | `a` | Adaptive mode toggle |
+| Menü yukarı | `↑` veya `w` | Kullanıcı listesinde yukarı |
+| Menü aşağı | `↓` veya `s` | Kullanıcı listesinde aşağı |
+| Sil | `d` | Seçili kullanıcıyı sil |
+| Onay | `y` / `n` | Silme işlemini onayla/iptal et |
 
 ## 🎨 **Ultra-Optimized Tasarım**
 

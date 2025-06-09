@@ -16,7 +16,7 @@ YELLOW = \033[0;33m
 BLUE = \033[0;34m
 NC = \033[0m # No Color
 
-.PHONY: help install test clean dev setup config optimize status benchmark backup logs monitor
+.PHONY: help install test clean dev setup config optimize status benchmark backup logs monitor menu-delete
 
 # Varsayılan hedef
 all: help
@@ -174,4 +174,9 @@ logs: ## Son logları göster
 
 monitor: ## Sistem monitörü (gerçek zamanlı loglar)
 	@echo "$(BLUE)👁️  Sistem monitörü başlatılıyor... (Ctrl+C ile çıkış)$(NC)"
-	@if [ -f "logs/app.log" ]; then tail -f logs/app.log; else echo "$(YELLOW)⚠️  Log dosyası bulunamadı$(NC)"; fi 
+	@if [ -f "logs/app.log" ]; then tail -f logs/app.log; else echo "$(YELLOW)⚠️  Log dosyası bulunamadı$(NC)"; fi
+
+menu-delete: ## Anlık tuş yanıtlı interaktif kullanıcı silme menüsü
+	@echo "$(BLUE)🎮 İnteraktif kullanıcı silme menüsü başlatılıyor...$(NC)"
+	@if [ ! -d "$(VENV_NAME)" ]; then echo "$(RED)❌ Önce 'make install' çalıştırın$(NC)"; exit 1; fi
+	$(PYTHON) main.py delete-interactive 
