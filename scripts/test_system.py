@@ -70,7 +70,7 @@ class AdvancedTestSuite:
             duration = time.time() - start_time
             result = TestResult(test_name, True, duration, "✅ BAŞARILI")
             self.logger.info(f"✅ {test_name} - {duration:.3f}s")
-        except Exception as e:
+    except Exception as e:
             duration = time.time() - start_time
             result = TestResult(test_name, False, duration, f"❌ HATA: {str(e)}")
             self.logger.error(f"❌ {test_name} - {str(e)}")

@@ -39,29 +39,49 @@ class KeyboardHandler:
     
     @staticmethod
     def get_char():
-        """Terminal'dan tek karakter okur (Cross-platform)."""
+        """Terminal'dan tek karakter okur (Cross-platform) - Anlık, enter gerektirmez."""
         if os.name == 'nt':  # Windows
             try:
                 import msvcrt
-                return msvcrt.getch().decode('utf-8')
-            except:
-                return input("Tuş girin: ")[:1]
+                return msvcrt.getch().decode('utf-8', errors='ignore')
+            except Exception:
+                # Windows fallback
+                return input("Komut: ")[:1]
         else:  # Unix/Linux/macOS
             try:
                 fd = sys.stdin.fileno()
                 old_settings = termios.tcgetattr(fd)
                 try:
-                    tty.cbreak(fd)
+                    # macOS uyumlu cbreak modu
+                    new_settings = termios.tcgetattr(fd)
+                    new_settings[3] &= ~termios.ICANON & ~termios.ECHO
+                    termios.tcsetattr(fd, termios.TCSADRAIN, new_settings)
                     ch = sys.stdin.read(1)
                     return ch
                 finally:
                     termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-            except:
-                return input("Tuş girin: ")[:1]
+            except Exception:
+                # Unix fallback - getch alternative
+                try:
+                    import select
+                    import sys
+                    
+                    # Non-blocking input alternatifi
+                    old_settings = termios.tcgetattr(sys.stdin.fileno())
+                    new_settings = old_settings[:]
+                    new_settings[3] &= ~termios.ICANON
+                    termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, new_settings)
+                    
+                    ch = sys.stdin.read(1)
+                    termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, old_settings)
+                    return ch
+                except:
+                    # Son çare fallback
+                    return input("Komut: ")[:1]
     
     @staticmethod
     def get_arrow_key():
-        """Ok tuşlarını algılar ve yön döndürür (Cross-platform)."""
+        """Ok tuşlarını algılar ve yön döndürür (Cross-platform) - Anlık, enter gerektirmez."""
         if os.name == 'nt':  # Windows
             try:
                 import msvcrt
@@ -76,24 +96,31 @@ class KeyboardHandler:
                         return 'RIGHT'
                     elif ch == b'K':
                         return 'LEFT'
-                return ch.decode('utf-8')
-            except:
-                return input("Komut (w/s/d/q): ")[:1]
+                return ch.decode('utf-8', errors='ignore')
+            except Exception:
+                # Windows fallback - sadece hata durumunda
+                print("\n⚠️ Klavye hatası - lütfen komut girin")
+                return input("(w/s/d/q): ")[:1]
         else:  # Unix/Linux/macOS
             ch = KeyboardHandler.get_char()
             
             if ch == '\x1b':  # ESC sequence başlangıcı
-                ch = KeyboardHandler.get_char()
-                if ch == '[':
-                    ch = KeyboardHandler.get_char()
-                    if ch == 'A':
-                        return 'UP'
-                    elif ch == 'B':
-                        return 'DOWN'
-                    elif ch == 'C':
-                        return 'RIGHT'
-                    elif ch == 'D':
-                        return 'LEFT'
+                try:
+                    ch2 = KeyboardHandler.get_char()
+                    if ch2 == '[':
+                        ch3 = KeyboardHandler.get_char()
+                        if ch3 == 'A':
+                            return 'UP'
+                        elif ch3 == 'B':
+                            return 'DOWN'
+                        elif ch3 == 'C':
+                            return 'RIGHT'
+                        elif ch3 == 'D':
+                            return 'LEFT'
+                        return ch3  # Diğer escape sequences
+                    return ch2
+                except Exception:
+                    return ch  # ESC tuşu tek başına
             
             return ch
 
@@ -756,15 +783,15 @@ class OptimizedFaceRecognitionApp:
     
     def interactive_delete_user(self) -> None:
         """
-        Interaktif kullanıcı silme menüsü.
-        Ok tuşları ile kullanıcılar arasında gezinme ve 'd' tuşu ile silme.
+        İnteraktif kullanıcı silme menüsü - Gerçek zamanlı menü deneyimi.
+        Ok tuşları ile anlık gezinme ve 'd' tuşu ile direkt silme.
         """
         users = self.user_manager.load_all_users()
         
         if not users:
             os.system('clear' if os.name == 'posix' else 'cls')
             print("🗑️  İNTERAKTİF KULLANICI SİLME MENÜSÜ")
-            print("=" * 50)
+            print("=" * 60)
             print("📭 Kayıtlı kullanıcı bulunamadı.")
             print()
             print("💡 Önce 'python main.py register --name \"İsim\"' ile kullanıcı kaydedin.")
@@ -778,109 +805,147 @@ class OptimizedFaceRecognitionApp:
         
         selected_index = 0
         
-        while True:
-            # Ekranı temizle
-            os.system('clear' if os.name == 'posix' else 'cls')
+        def render_menu():
+            """Menüyü anlık olarak çizer."""
+            # Terminal boyutunu al (maksimum genişlik)
+            try:
+                import shutil
+                terminal_width = shutil.get_terminal_size().columns
+            except:
+                terminal_width = 80
             
-            # Başlık
-            print("🗑️  İNTERAKTİF KULLANICI SİLME MENÜSÜ")
-            print("=" * 50)
-            print("📋 Kontroller:")
-            print("   ↑↓ (veya w/s) : Gezinme")
-            print("   d            : Kullanıcıyı sil")
-            print("   q            : Çıkış")
-            print("=" * 50)
+            # Ekranı tamamen temizle
+            print("\033[2J\033[H", end='')  # ANSI escape codes ile hızlı temizleme
+            
+            # Başlık - merkezi hizalama
+            title = "🗑️  İNTERAKTİF KULLANICI SİLME MENÜSÜ"
+            separator = "═" * min(60, terminal_width - 2)
+            
+            print(f"\033[1m{title}\033[0m")  # Bold başlık
+            print(separator)
+            
+            # Kontroller - kompakt görünüm
+            print("\033[36m↑↓\033[0m Gezin  \033[91md\033[0m Sil  \033[93mq\033[0m Çık")
+            print(separator)
             print()
             
-            # Kullanıcı listesi
-            print(f"👥 Kayıtlı Kullanıcılar ({len(users)} adet):")
+            # Kullanıcı listesi - daha temiz görünüm
+            print(f"\033[1m👥 Kullanıcılar ({len(users)} adet):\033[0m")
             print()
             
             for i, user in enumerate(users):
-                # Seçili kullanıcıyı işaretle
                 if i == selected_index:
-                    marker = "➤ "
-                    status = "🔸"
+                    # Seçili kullanıcı - highlighted
+                    arrow = "\033[92m▶\033[0m"  # Yeşil ok
+                    name = f"\033[97m\033[44m {user.name} \033[0m"  # Mavi arkaplan ile highlight
+                    details = f"\033[90m    💾 {len(user.face_encodings)} örnek  📅 {user.created_at[:10]}\033[0m"
                 else:
-                    marker = "  "
-                    status = "👤"
+                    # Normal kullanıcı
+                    arrow = " "
+                    name = f"\033[37m {user.name}\033[0m"
+                    details = ""
                 
-                print(f"{marker}{status} {user.name}")
-                if i == selected_index:
-                    print(f"     📸 Yüz örnekleri: {len(user.face_encodings)}")
-                    print(f"     📅 Kayıt tarihi: {user.created_at}")
+                print(f" {arrow} {name}")
+                if details:
+                    print(details)
                 print()
             
-            print("-" * 50)
-            print(f"Seçili: {users[selected_index].name}")
-            print("Komut bekliyor... (↑↓/w/s/d/q)")
+            # Alt bilgi
+            print(separator)
+            selected_user = users[selected_index]
+            print(f"\033[1mSeçili:\033[0m \033[93m{selected_user.name}\033[0m")
+            print("\033[90mKomut bekleniyor...\033[0m")
+        
+        # Ana menü döngüsü
+        while True:
+            render_menu()
             
-            # Klavye girişini al
             try:
+                # Tuş girişini bekle (blocking)
                 key = KeyboardHandler.get_arrow_key()
                 
                 if key == 'UP' or key.lower() == 'w':
+                    # Yukarı çık
                     selected_index = (selected_index - 1) % len(users)
+                    
                 elif key == 'DOWN' or key.lower() == 's':
+                    # Aşağı in
                     selected_index = (selected_index + 1) % len(users)
+                    
                 elif key.lower() == 'd':
-                    # Silme onayı
+                    # Kullanıcıyı sil
                     selected_user = users[selected_index]
                     
-                    # Onay ekranı
-                    os.system('clear' if os.name == 'posix' else 'cls')
-                    print("⚠️  SİLME ONAYI")
-                    print("=" * 30)
-                    print(f"🗑️  Silinecek kullanıcı: {selected_user.name}")
-                    print(f"📸 Yüz örnekleri: {len(selected_user.face_encodings)}")
-                    print(f"📅 Kayıt tarihi: {selected_user.created_at}")
-                    print()
-                    print("Bu işlem geri alınamaz!")
-                    print()
-                    print("y : Evet, sil")
-                    print("n : Hayır, iptal et")
+                    # Silme onay ekranı
+                    print("\033[2J\033[H", end='')  # Ekranı temizle
                     
+                    print("\033[1m\033[91m⚠️  SİLME ONAYI\033[0m")
+                    print("═" * 40)
+                    print()
+                    print(f"\033[1mSilinecek kullanıcı:\033[0m")
+                    print(f"  \033[93m👤 {selected_user.name}\033[0m")
+                    print(f"  \033[90m📸 {len(selected_user.face_encodings)} yüz örneği\033[0m")
+                    print(f"  \033[90m📅 {selected_user.created_at[:19]}\033[0m")
+                    print()
+                    print("\033[91m⚠️  Bu işlem geri alınamaz!\033[0m")
+                    print()
+                    print("\033[92my\033[0m = Evet, sil    \033[93mn\033[0m = Hayır, iptal")
+                    print()
+                    print("\033[90mSeçiminiz:\033[0m ", end='', flush=True)
+                    
+                    # Onay bekle
                     confirm_key = KeyboardHandler.get_char().lower()
                     
                     if confirm_key == 'y':
+                        # Silme işlemi - otomatik geri dön
                         if self.delete_user(selected_user.name):
                             # Kullanıcı listesini güncelle
                             users = self.user_manager.load_all_users()
                             
                             if not users:
-                                print("\n📭 Tüm kullanıcılar silindi. Menüden çıkılıyor...")
-                                time.sleep(2)
+                                # Tüm kullanıcılar silindi - otomatik çıkış
+                                print("\033[2J\033[H", end='')
+                                print("\033[92m✅ Tüm kullanıcılar silindi.\033[0m")
+                                print("\033[90mMenü otomatik kapatılıyor...\033[0m")
+                                time.sleep(1.5)
                                 break
                             
                             # Seçili index'i güncelle
                             if selected_index >= len(users):
                                 selected_index = len(users) - 1
                             
-                            print("\n✅ Kullanıcı başarıyla silindi!")
+                            # Başarı mesajı kısa süre göster ve otomatik devam et
+                            print("\033[2J\033[H", end='')
+                            print("\033[92m✅ Kullanıcı başarıyla silindi!\033[0m")
+                            time.sleep(0.8)
                         else:
-                            print("\n❌ Kullanıcı silinemedi!")
+                            # Hata durumu - kısa mesaj ve devam
+                            print("\033[2J\033[H", end='')
+                            print("\033[91m❌ Kullanıcı silinemedi!\033[0m")
+                            time.sleep(1.0)
                         
-                        print("Devam etmek için bir tuşa basın...")
-                        KeyboardHandler.get_char()
                     else:
-                        print("\n❌ İşlem iptal edildi.")
-                        print("Devam etmek için bir tuşa basın...")
-                        KeyboardHandler.get_char()
+                        # İptal durumu - otomatik geri dön
+                        pass  # Sadece ana menüye geri dön
                 
                 elif key.lower() == 'q':
-                    print("\n👋 Menüden çıkılıyor...")
+                    # Çıkış
+                    print("\033[2J\033[H", end='')
+                    print("\033[93m👋 Menüden çıkılıyor...\033[0m")
+                    time.sleep(0.5)
                     break
                     
             except KeyboardInterrupt:
-                print("\n\n👋 Menüden çıkılıyor...")
+                print("\033[2J\033[H", end='')
+                print("\033[93m👋 Menüden çıkılıyor...\033[0m")
+                time.sleep(0.5)
                 break
             except Exception as e:
-                print(f"\n❌ Klavye hatası: {e}")
-                print("Devam etmek için bir tuşa basın...")
-                try:
-                    KeyboardHandler.get_char()
-                except:
-                    break
+                # Hata durumu - kısa mesaj göster ve devam et
+                print("\033[2J\033[H", end='')
+                print(f"\033[91m❌ Klavye hatası: {e}\033[0m")
+                print("\033[90mOtomatik olarak devam ediliyor...\033[0m")
+                time.sleep(1.0)
 
     def _draw_dashboard_ui(self, frame, fps_data, recognition_data=None, registration_data=None):
         """
