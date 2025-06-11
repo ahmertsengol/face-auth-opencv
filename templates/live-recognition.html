@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Face Recognition - Full Screen</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link href="/static/css/dashboard.css" rel="stylesheet">
+    <link href="/static/css/live-recognition.css" rel="stylesheet">
+</head>
+<body class="light-theme live-recognition-page">
+    <!-- Header -->
+    <header class="live-header">
+        <div class="live-header-content">
+            <div class="header-brand">
+                <div class="brand-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 7l-7 5 7 5V7z"/>
+                        <rect width="15" height="14" x="1" y="5" rx="2" ry="2"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>Live Recognition</h1>
+                    <span>Real-time Face Detection</span>
+                </div>
+            </div>
+            
+            <div class="header-controls">
+                <div class="status-display">
+                    <div class="status-indicator" id="connection-status"></div>
+                    <span id="status-text">Ready</span>
+                </div>
+                
+                <button class="control-btn" id="theme-toggle" title="Toggle Theme">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon">
+                        <circle cx="12" cy="12" r="5"/>
+                        <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                    </svg>
+                </button>
+                
+                <a href="/" class="control-btn" title="Back to Dashboard">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12h18m-9-9l-9 9 9 9"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="live-main">
+        <!-- Camera Section -->
+        <section class="camera-section">
+            <div class="camera-container">
+                <video id="live-video" autoplay muted playsinline></video>
+                <canvas id="live-canvas" style="display: none;"></canvas>
+                
+                <!-- Video Overlay -->
+                <div class="video-overlay" id="video-overlay">
+                    <div class="overlay-content">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 7l-7 5 7 5V7z"/>
+                            <rect width="15" height="14" x="1" y="5" rx="2" ry="2"/>
+                        </svg>
+                        <h3>Start Live Recognition</h3>
+                        <p>Click the start button to begin face detection</p>
+                    </div>
+                </div>
+                
+                <!-- Face Detection Overlay -->
+                <div class="face-detection-overlay" id="face-overlay">
+                    <!-- Face bounding boxes will be drawn here -->
+                </div>
+                
+                <!-- Camera Controls -->
+                <div class="camera-controls">
+                    <button class="control-button primary" id="start-stop-btn" onclick="toggleRecognition()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="5,3 19,12 5,21"/>
+                        </svg>
+                        <span>Start Recognition</span>
+                    </button>
+                    
+                    <button class="control-button secondary" id="capture-btn" onclick="captureFrame()" disabled>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                            <circle cx="12" cy="13" r="3"/>
+                        </svg>
+                        <span>Capture</span>
+                    </button>
+                    
+                    <button class="control-button secondary" id="settings-btn" onclick="openSettings()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 1v6m0 6v6"/>
+                        </svg>
+                        <span>Settings</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section class="results-section">
+            <div class="results-header">
+                <h2>Recognition Results</h2>
+                <div class="results-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Faces Detected:</span>
+                        <span class="stat-value" id="faces-count">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Recognized:</span>
+                        <span class="stat-value" id="recognized-count">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Processing Speed:</span>
+                        <span class="stat-value" id="processing-speed">0ms</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="results-content" id="results-content">
+                <div class="empty-results">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <p>No recognition results yet</p>
+                    <span>Start recognition to see live results</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Performance Monitor -->
+    <div class="performance-monitor" id="performance-monitor">
+        <div class="monitor-item">
+            <span class="monitor-label">FPS:</span>
+            <span class="monitor-value" id="fps-counter">0</span>
+        </div>
+        <div class="monitor-item">
+            <span class="monitor-label">Latency:</span>
+            <span class="monitor-value" id="latency-counter">0ms</span>
+        </div>
+    </div>
+
+    <!-- Advanced Settings Modal -->
+    <div class="modal settings-modal" id="settings-modal">
+        <div class="modal-backdrop" onclick="closeSettings()"></div>
+        <div class="modal-content settings-content">
+            <div class="modal-header">
+                <h3>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v6m0 6v6"/>
+                        <path d="M21 12h-6m-6 0H3"/>
+                    </svg>
+                    Advanced Settings
+                </h3>
+                <button class="modal-close" onclick="closeSettings()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6L6 18"/>
+                        <path d="M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Settings Tabs -->
+            <div class="settings-tabs">
+                <button class="settings-tab active" onclick="switchSettingsTab('camera')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                        <circle cx="12" cy="13" r="3"/>
+                    </svg>
+                    Camera
+                </button>
+                <button class="settings-tab" onclick="switchSettingsTab('recognition')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    Recognition
+                </button>
+                <button class="settings-tab" onclick="switchSettingsTab('display')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="20" height="14" x="2" y="3" rx="2" ry="2"/>
+                        <line x1="8" x2="16" y1="21" y2="21"/>
+                        <line x1="12" x2="12" y1="17" y2="21"/>
+                    </svg>
+                    Display
+                </button>
+                <button class="settings-tab" onclick="switchSettingsTab('alerts')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                    </svg>
+                    Alerts
+                </button>
+                <button class="settings-tab" onclick="switchSettingsTab('advanced')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    Advanced
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Camera Settings Tab -->
+                <div class="settings-tab-content active" id="camera-settings">
+                    <div class="setting-section">
+                        <h4>Camera Configuration</h4>
+                        
+                        <div class="setting-group">
+                            <label for="camera-resolution">Video Resolution:</label>
+                            <select id="camera-resolution">
+                                <option value="640x480">640 x 480 (4:3)</option>
+                                <option value="1280x720" selected>1280 x 720 (HD)</option>
+                                <option value="1920x1080">1920 x 1080 (Full HD)</option>
+                                <option value="auto">Auto (Device Default)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label for="frame-rate">Target Frame Rate:</label>
+                            <select id="frame-rate">
+                                <option value="15">15 FPS</option>
+                                <option value="24">24 FPS</option>
+                                <option value="30" selected>30 FPS</option>
+                                <option value="60">60 FPS</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label for="camera-facing">Camera Facing:</label>
+                            <select id="camera-facing">
+                                <option value="user" selected>Front Camera</option>
+                                <option value="environment">Back Camera</option>
+                                <option value="auto">Auto Select</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="mirror-video" checked>
+                                Mirror Video (Flip Horizontally)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recognition Settings Tab -->
+                <div class="settings-tab-content" id="recognition-settings">
+                    <div class="setting-section">
+                        <h4>Recognition Configuration</h4>
+                        
+                        <div class="setting-group">
+                            <label for="recognition-interval">Recognition Interval:</label>
+                            <input type="range" id="recognition-interval" min="500" max="5000" value="2000" step="100">
+                            <span class="setting-value" id="interval-value">2000ms</span>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label for="confidence-threshold">Confidence Threshold:</label>
+                            <input type="range" id="confidence-threshold" min="0.3" max="0.9" value="0.6" step="0.05">
+                            <span class="setting-value" id="confidence-value">60%</span>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label for="max-faces">Maximum Faces to Detect:</label>
+                            <select id="max-faces">
+                                <option value="1">1 Face</option>
+                                <option value="3" selected>3 Faces</option>
+                                <option value="5">5 Faces</option>
+                                <option value="10">10 Faces</option>
+                                <option value="unlimited">Unlimited</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="continuous-recognition" checked>
+                                Continuous Recognition
+                            </label>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="save-unknown-faces">
+                                Save Unknown Face Captures
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Display Settings Tab -->
+                <div class="settings-tab-content" id="display-settings">
+                    <div class="setting-section">
+                        <h4>Display Configuration</h4>
+                        
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="show-fps" checked>
+                                Show Performance Monitor
+                            </label>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="show-bounding-boxes" checked>
+                                Show Face Bounding Boxes
+                            </label>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="show-confidence" checked>
+                                Show Confidence Scores
+                            </label>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="show-recognition-history" checked>
+                                Show Recognition History
+                            </label>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label for="results-max-count">Max Results History:</label>
+                            <select id="results-max-count">
+                                <option value="10">10 Results</option>
+                                <option value="25" selected>25 Results</option>
+                                <option value="50">50 Results</option>
+                                <option value="100">100 Results</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label for="theme-preference">Theme Preference:</label>
+                            <select id="theme-preference">
+                                <option value="light">Light Theme</option>
+                                <option value="dark">Dark Theme</option>
+                                <option value="auto" selected>Auto (System)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerts Settings Tab -->
+                <div class="settings-tab-content" id="alerts-settings">
+                    <div class="setting-section">
+                        <h4>Alert Configuration</h4>
+                        
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="audio-alerts" checked>
+                                Enable Audio Alerts
+                            </label>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="recognition-sound" checked>
+                                Sound on Face Recognition
+                            </label>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="unknown-face-alert">
+                                Alert on Unknown Face
+                            </label>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label for="alert-volume">Alert Volume:</label>
+                            <input type="range" id="alert-volume" min="0" max="100" value="50" step="5">
+                            <span class="setting-value" id="volume-value">50%</span>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="desktop-notifications">
+                                Desktop Notifications
+                            </label>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="auto-capture-on-recognition" checked>
+                                Auto-capture on Recognition
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Settings Tab -->
+                <div class="settings-tab-content" id="advanced-settings">
+                    <div class="setting-section">
+                        <h4>Advanced Configuration</h4>
+                        
+                        <div class="setting-group">
+                            <label for="processing-mode">Processing Mode:</label>
+                            <select id="processing-mode">
+                                <option value="balanced" selected>Balanced</option>
+                                <option value="performance">High Performance</option>
+                                <option value="accuracy">High Accuracy</option>
+                                <option value="battery">Battery Saver</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label for="debug-mode">
+                                <input type="checkbox" id="debug-mode">
+                                Enable Debug Mode
+                            </label>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label for="api-timeout">API Timeout (seconds):</label>
+                            <input type="number" id="api-timeout" min="1" max="30" value="10" step="1">
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="auto-retry">
+                                Auto-retry on API Failure
+                            </label>
+                        </div>
+                        
+                        <div class="setting-section-divider"></div>
+                        
+                        <div class="setting-group">
+                            <h5>Data Management</h5>
+                            <div class="setting-buttons">
+                                <button class="btn secondary" onclick="exportSettings()">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="7,10 12,15 17,10"/>
+                                        <line x1="12" x2="12" y1="15" y2="3"/>
+                                    </svg>
+                                    Export Settings
+                                </button>
+                                <button class="btn secondary" onclick="importSettings()">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="17,8 12,3 7,8"/>
+                                        <line x1="12" x2="12" y1="3" y2="15"/>
+                                    </svg>
+                                    Import Settings
+                                </button>
+                                <button class="btn warning" onclick="clearAllData()">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="3,6 5,6 21,6"/>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                    Clear All Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn secondary" onclick="resetSettings()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                        <path d="M21 3v5h-5"/>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                        <path d="M8 16H3v5"/>
+                    </svg>
+                    Reset to Defaults
+                </button>
+                <button class="btn primary" onclick="saveSettings()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        <polyline points="17,21 17,13 7,13 7,21"/>
+                        <polyline points="7,3 7,8 15,8"/>
+                    </svg>
+                    Save Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="notifications-container" id="notifications"></div>
+
+    <!-- Scripts -->
+    <script src="/static/js/live-recognition.js"></script>
+</body>
+</html> 
