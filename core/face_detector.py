@@ -278,4 +278,47 @@ class FaceDetector(OptimizedFaceDetector):
         return self.detect_faces_dlib_optimized(frame)
     
     def get_face_encodings(self, frame: np.ndarray) -> List[np.ndarray]:
-        return self.get_face_encodings_optimized(frame) 
+        return self.get_face_encodings_optimized(frame)
+    
+    def detect_and_encode(self, image_data: bytes) -> List[np.ndarray]:
+        """
+        Byte veriden yüz algılama ve encoding çıkarma.
+        
+        Args:
+            image_data: Görüntü byte verisi
+            
+        Returns:
+            Yüz encoding'lerinin listesi
+        """
+        try:
+            # Byte veriden numpy array oluştur
+            nparr = np.frombuffer(image_data, np.uint8)
+            frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if frame is None:
+                return []
+            
+            return self.detect_and_encode_cv2(frame)
+        except Exception as e:
+            print(f"Error in detect_and_encode: {e}")
+            return []
+    
+    def detect_and_encode_cv2(self, frame: np.ndarray) -> List[np.ndarray]:
+        """
+        OpenCV frame'den yüz algılama ve encoding çıkarma.
+        
+        Args:
+            frame: OpenCV frame (BGR format)
+            
+        Returns:
+            Yüz encoding'lerinin listesi
+        """
+        try:
+            # RGB formatına çevir (face_recognition RGB bekler)
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            
+            # Yüz encoding'lerini çıkar
+            return self.get_face_encodings_optimized(rgb_frame)
+        except Exception as e:
+            print(f"Error in detect_and_encode_cv2: {e}")
+            return [] 
