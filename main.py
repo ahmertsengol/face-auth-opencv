@@ -78,7 +78,7 @@ class KeyboardHandler:
     
     @staticmethod
     def get_char():
-        """Terminal'dan tek karakter okur (Cross-platform) - Anlık, enter gerektirmez."""
+        """Terminal'dan tek karakter okur (Cross-platform)"""
         if os.name == 'nt':  # Windows
             try:
                 import msvcrt
