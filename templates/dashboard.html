@@ -3,173 +3,418 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }} - Yüz Tanıma Sistemi</title>
+    <title>{{ title }} - Face Recognition System</title>
     
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- Chart.js - UMD Version for compatibility -->
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     
     <!-- Custom CSS -->
     <link href="/static/css/dashboard.css" rel="stylesheet">
 </head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="/">
-                <i class="bi bi-camera-fill"></i>
-                Face Recognition Dashboard
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/"><i class="bi bi-house"></i> Ana Sayfa</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#users"><i class="bi bi-people"></i> Kullanıcılar</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#stats"><i class="bi bi-graph-up"></i> İstatistikler</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#live"><i class="bi bi-camera-video"></i> Canlı Tanıma</a>
-                    </li>
-                </ul>
+<body class="light-theme">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="header-brand">
+                <div class="brand-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                        <circle cx="12" cy="13" r="3"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>Face Recognition</h1>
+                    <span>AI-Powered Security</span>
+                </div>
             </div>
+            
+            <div class="header-actions">
+                <a href="/live-recognition" class="action-btn" title="Live Recognition">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 7l-7 5 7 5V7z"/>
+                        <rect width="15" height="14" x="1" y="5" rx="2" ry="2"/>
+                    </svg>
+                </a>
+                <button class="action-btn" id="theme-toggle" title="Toggle Theme">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon">
+                        <circle cx="12" cy="12" r="5"/>
+                        <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                    </svg>
+                </button>
+                <button class="action-btn" id="notifications-btn" title="Notifications">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                    </svg>
+                    <span class="notification-badge">3</span>
+                </button>
+                <div class="user-menu">
+                    <div class="user-avatar">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Stats Overview -->
+        <section class="stats-section">
+            <h2 class="section-title">System Overview</h2>
+            <div class="stats-grid">
+                <div class="stat-card primary">
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="stat-users">-</h3>
+                        <p>Total Users</p>
+                        <span class="stat-change positive">+12% this week</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card success">
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                            <circle cx="9" cy="9" r="2"/>
+                            <path d="M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="stat-encodings">-</h3>
+                        <p>Face Samples</p>
+                        <span class="stat-change positive">+8% this week</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card info">
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="stat-avg">-</h3>
+                        <p>Avg. Samples/User</p>
+                        <span class="stat-change neutral">No change</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card warning">
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                            <line x1="3" x2="21" y1="6" y2="6"/>
+                            <path d="M16 10a4 4 0 0 1-8 0"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="system-status">Online</h3>
+                        <p>System Status</p>
+                        <span class="stat-change positive">99.9% uptime</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Actions -->
+        <section class="quick-actions-section">
+            <div class="quick-actions-grid">
+                <a href="/live-recognition" class="quick-action-btn primary">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 7l-7 5 7 5V7z"/>
+                        <rect width="15" height="14" x="1" y="5" rx="2" ry="2"/>
+                    </svg>
+                    <span>Full Screen Recognition</span>
+                </a>
+                <button class="quick-action-btn success" onclick="showAddUserModal()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M22 11L22 4"/>
+                        <path d="M18.5 7.5L25.5 7.5"/>
+                    </svg>
+                    <span>Add New User</span>
+                </button>
+                <button class="quick-action-btn info" onclick="exportData()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7,10 12,15 17,10"/>
+                        <line x1="12" x2="12" y1="15" y2="3"/>
+                    </svg>
+                    <span>Export Data</span>
+                </button>
+                <button class="quick-action-btn warning" onclick="openSettings()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v6m0 6v6"/>
+                        <path d="M21 12h-6m-6 0H3"/>
+                        <path d="M4.93 4.93l4.24 4.24m5.66 5.66l4.24 4.24"/>
+                        <path d="M4.93 19.07l4.24-4.24m5.66-5.66l4.24-4.24"/>
+                    </svg>
+                    <span>Settings</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Content Grid -->
+        <div class="content-grid">
+            <!-- Users Section -->
+            <section class="content-card users-section">
+                <div class="card-header">
+                    <h3>Registered Users</h3>
+                    <div class="card-actions">
+                        <button class="icon-btn" onclick="refreshUsers()" title="Refresh">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                                <path d="M21 3v5h-5"/>
+                                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                                <path d="M8 16H3v5"/>
+                            </svg>
+                        </button>
+                        <button class="icon-btn" onclick="showAddUserModal()" title="Add User">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M5 12h14"/>
+                                <path d="M12 5v14"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="users-list" id="users-list">
+                        <!-- Loading state -->
+                        <div class="loading-state">
+                            <div class="loading-spinner"></div>
+                            <p>Loading users...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Live Recognition Section -->
+            <section class="content-card live-section">
+                <div class="card-header">
+                    <h3>Live Recognition</h3>
+                    <div class="card-actions">
+                        <button class="icon-btn" id="start-recognition-btn" onclick="toggleRecognition()" title="Start Recognition">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="play-icon">
+                                <polygon points="5,3 19,12 5,21"/>
+                            </svg>
+                        </button>
+                        <button class="icon-btn" onclick="captureFrame()" title="Capture Frame">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                                <circle cx="12" cy="13" r="3"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="video-container">
+                        <video id="video-stream" autoplay muted playsinline></video>
+                        <canvas id="video-canvas" style="display: none;"></canvas>
+                        <div class="video-overlay">
+                            <div class="recognition-status" id="recognition-status">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M16 16v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/>
+                                    <path d="M15 6l6 6-6 6"/>
+                                </svg>
+                                <p>Click start to begin recognition</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="recognition-results" id="recognition-results">
+                        <!-- Results will appear here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics Section -->
+            <section class="content-card analytics-section">
+                <div class="card-header">
+                    <h3>Performance Analytics</h3>
+                    <div class="card-actions">
+                        <select class="select-input" id="analytics-period">
+                            <option value="24h">Last 24 hours</option>
+                            <option value="7d">Last 7 days</option>
+                            <option value="30d">Last 30 days</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="chart-container">
+                        <canvas id="analytics-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- System Health Section -->
+            <section class="content-card health-section">
+                <div class="card-header">
+                    <h3>System Health</h3>
+                    <div class="status-indicator online"></div>
+                </div>
+                <div class="card-content">
+                    <div class="health-metrics">
+                        <div class="metric">
+                            <span class="metric-label">CPU Usage</span>
+                            <div class="metric-value">
+                                <span id="cpu-usage">--</span>
+                                <div class="metric-bar">
+                                    <div class="metric-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Memory Usage</span>
+                            <div class="metric-value">
+                                <span id="memory-usage">--</span>
+                                <div class="metric-bar">
+                                    <div class="metric-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Recognition Speed</span>
+                            <div class="metric-value">
+                                <span id="recognition-speed">-- ms</span>
+                                <div class="metric-bar">
+                                    <div class="metric-fill success" style="width: 85%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
-    </nav>
+    </main>
 
-    <!-- Main Dashboard -->
-    <div class="container-fluid mt-4">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5><i class="bi bi-speedometer2"></i> Sistem Durumu</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <span class="badge bg-success me-2">●</span>
-                            <span>Sistem Aktif</span>
-                        </div>
-                        <div class="row text-center">
-                            <div class="col-12 mb-2">
-                                <h4 class="text-primary" id="total-users">{{ total_users }}</h4>
-                                <small class="text-muted">Kayıtlı Kullanıcı</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Quick Actions -->
-                <div class="card">
-                    <div class="card-header">
-                        <h5><i class="bi bi-lightning"></i> Hızlı Eylemler</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-primary btn-sm" onclick="startRecognition()">
-                                <i class="bi bi-play"></i> Tanıma Başlat
-                            </button>
-                            <button class="btn btn-success btn-sm" onclick="showAddUser()">
-                                <i class="bi bi-person-plus"></i> Kullanıcı Ekle
-                            </button>
-                            <button class="btn btn-info btn-sm" onclick="refreshStats()">
-                                <i class="bi bi-arrow-clockwise"></i> Yenile
-                            </button>
-                        </div>
-                    </div>
-                </div>
+    <!-- Add User Modal -->
+    <div class="modal" id="add-user-modal">
+        <div class="modal-backdrop" onclick="closeModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New User</h3>
+                <button class="modal-close" onclick="closeModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6L6 18"/>
+                        <path d="M6 6l12 12"/>
+                    </svg>
+                </button>
             </div>
+            <div class="modal-body">
+                <form id="add-user-form">
+                    <div class="form-group">
+                        <label for="user-name">Full Name</label>
+                        <input type="text" id="user-name" name="name" required placeholder="Enter full name">
+                    </div>
+                    <div class="form-group">
+                        <label for="user-photos">Face Photos</label>
+                        
+                        <!-- Upload Method Tabs -->
+                        <div class="upload-tabs">
+                            <button type="button" class="upload-tab active" id="file-tab" onclick="switchUploadTab('file')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="17,8 12,3 7,8"/>
+                                    <line x1="12" x2="12" y1="3" y2="15"/>
+                                </svg>
+                                Upload Files
+                            </button>
+                            <button type="button" class="upload-tab" id="camera-tab" onclick="switchUploadTab('camera')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                                    <circle cx="12" cy="13" r="3"/>
+                                </svg>
+                                Take Photos
+                            </button>
+                        </div>
 
-            <!-- Main Content -->
-            <div class="col-md-9">
-                <!-- Stats Cards -->
-                <div class="row mb-4">
-                    <div class="col-md-4">
-                        <div class="card text-center border-primary">
-                            <div class="card-body">
-                                <i class="bi bi-people display-4 text-primary"></i>
-                                <h3 class="mt-2" id="stat-users">-</h3>
-                                <p class="text-muted">Toplam Kullanıcı</p>
+                        <!-- File Upload Area -->
+                        <div class="upload-content" id="file-upload-content">
+                            <div class="file-upload-area" id="file-upload-area">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="17,8 12,3 7,8"/>
+                                    <line x1="12" x2="12" y1="3" y2="15"/>
+                                </svg>
+                                <p>Drag & drop photos here or <span class="upload-link">browse files</span></p>
+                                <input type="file" id="user-photos" name="photos" multiple accept="image/*" style="display: none;">
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card text-center border-success">
-                            <div class="card-body">
-                                <i class="bi bi-image display-4 text-success"></i>
-                                <h3 class="mt-2" id="stat-encodings">-</h3>
-                                <p class="text-muted">Yüz Örneği</p>
+
+                        <!-- Camera Capture Area -->
+                        <div class="upload-content hidden" id="camera-upload-content">
+                            <div class="camera-capture-area">
+                                <div class="camera-container-modal">
+                                    <video id="camera-preview" autoplay muted playsinline style="display: none;"></video>
+                                    <canvas id="capture-canvas" style="display: none;"></canvas>
+                                    <div class="camera-placeholder" id="camera-placeholder">
+                                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                                            <circle cx="12" cy="13" r="3"/>
+                                        </svg>
+                                        <p>Click "Start Camera" to begin taking photos</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="camera-controls">
+                                    <button type="button" class="btn secondary" id="start-camera-btn" onclick="startCamera()">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polygon points="5,3 19,12 5,21"/>
+                                        </svg>
+                                        Start Camera
+                                    </button>
+                                    <button type="button" class="btn primary hidden" id="capture-photo-btn" onclick="capturePhoto()">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="13" r="3"/>
+                                        </svg>
+                                        Capture Photo
+                                    </button>
+                                    <button type="button" class="btn secondary hidden" id="stop-camera-btn" onclick="stopCamera()">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect width="6" height="6" x="9" y="9"/>
+                                        </svg>
+                                        Stop Camera
+                                    </button>
+                                </div>
+                                
+                                <div class="photo-counter">
+                                    <span>Photos taken: <strong id="photo-count">0</strong> / 5 recommended</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card text-center border-info">
-                            <div class="card-body">
-                                <i class="bi bi-graph-up display-4 text-info"></i>
-                                <h3 class="mt-2" id="stat-avg">-</h3>
-                                <p class="text-muted">Ort. Örnek/Kullanıcı</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Users Table -->
-                <div class="card mb-4" id="users">
-                    <div class="card-header">
-                        <h5><i class="bi bi-people"></i> Kayıtlı Kullanıcılar</h5>
+                        <!-- Uploaded/Captured Files Display -->
+                        <div class="uploaded-files" id="uploaded-files"></div>
                     </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-striped" id="users-table">
-                                <thead>
-                                    <tr>
-                                        <th>Ad</th>
-                                        <th>Yüz Örnekleri</th>
-                                        <th>Kayıt Tarihi</th>
-                                        <th>İşlemler</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="users-tbody">
-                                    <tr>
-                                        <td colspan="4" class="text-center">
-                                            <div class="spinner-border text-primary" role="status">
-                                                <span class="visually-hidden">Yükleniyor...</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Live Recognition Area (Placeholder) -->
-                <div class="card" id="live">
-                    <div class="card-header">
-                        <h5><i class="bi bi-camera-video"></i> Canlı Yüz Tanıma</h5>
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i>
-                            Canlı tanıma özelliği yakında eklenecek...
-                        </div>
-                    </div>
-                </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn secondary" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn primary" form="add-user-form">Add User</button>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Notifications -->
+    <div class="notifications-container" id="notifications"></div>
+
     <!-- Custom JS -->
     <script src="/static/js/dashboard.js"></script>
 </body>
