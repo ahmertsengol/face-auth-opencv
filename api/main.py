@@ -11,18 +11,22 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 import traceback
 
-from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException, Depends, File, UploadFile, Form
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
+from pydantic import BaseModel
 
 # Add project root to Python path
 current_dir = Path(__file__).parent
 project_root = current_dir.parent
 sys.path.insert(0, str(project_root))
+
+# Import core modules globally
+from core.user_manager import UserData
 
 # Configure logging
 logging.basicConfig(
@@ -112,6 +116,16 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 templates = Jinja2Templates(directory=str(templates_dir))
 
+# Pydantic models for request validation
+class UserCreateRequest(BaseModel):
+    name: str
+    
+class UserDeleteRequest(BaseModel):
+    username: str
+    
+class RecognitionRequest(BaseModel):
+    image_data: str  # Base64 encoded image
+
 # Error handling middleware
 @app.middleware("http")
 async def error_handling_middleware(request: Request, call_next):
@@ -174,6 +188,23 @@ async def dashboard(request: Request):
     except Exception as e:
         logger.error(f"❌ Template error: {str(e)}")
         raise HTTPException(status_code=500, detail="Template rendering failed")
+
+@app.get("/live-recognition", response_class=HTMLResponse, name="live-recognition")
+async def live_recognition(request: Request):
+    """
+    Dedicated live face recognition page with full-screen camera view
+    """
+    try:
+        context = {
+            "request": request,
+            "title": "Live Face Recognition",
+            "version": "2.0.0",
+            "timestamp": datetime.now().isoformat()
+        }
+        return templates.TemplateResponse("live-recognition.html", context)
+    except Exception as e:
+        logger.error(f"❌ Live recognition template error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Live recognition template rendering failed")
 
 @app.get("/api/health")
 async def health_check():
@@ -327,6 +358,214 @@ async def get_user_details(username: str, modules: dict = Depends(get_modules)):
             "error": f"Failed to load user: {str(e)}",
             "timestamp": datetime.now().isoformat()
         }
+
+@app.post("/api/users")
+async def create_user(
+    name: str = Form(...),
+    photos: List[UploadFile] = File(...),
+    modules: dict = Depends(get_modules)
+):
+    """
+    Create a new user with face photos
+    """
+    try:
+        user_manager = modules["user_manager"]
+        face_detector = modules["face_detector"]
+        
+        # Validate input
+        if not name.strip():
+            raise HTTPException(status_code=400, detail="Name cannot be empty")
+        
+        if len(photos) == 0:
+            raise HTTPException(status_code=400, detail="At least one photo is required")
+        
+        # Check if user already exists
+        existing_user = user_manager.load_user(name)
+        if existing_user is not None:
+            raise HTTPException(status_code=409, detail=f"User '{name}' already exists")
+        
+        # Process photos
+        face_encodings = []
+        processed_photos = 0
+        
+        for photo in photos:
+            # Validate file type
+            if not photo.content_type.startswith('image/'):
+                continue
+                
+            # Read image data
+            image_data = await photo.read()
+            
+            # Detect and encode faces
+            encodings = face_detector.detect_and_encode(image_data)
+            if len(encodings) > 0:
+                face_encodings.extend(encodings)
+                processed_photos += 1
+        
+        if len(face_encodings) == 0:
+            raise HTTPException(
+                status_code=400, 
+                detail="No faces detected in the uploaded photos"
+            )
+        
+        # Create user with UserData object
+        user_data = UserData(
+            name=name,
+            face_encodings=face_encodings,
+            created_at=datetime.now().isoformat(),
+            updated_at=datetime.now().isoformat()
+        )
+        
+        success = user_manager.save_user(user_data)
+        
+        if success:
+            return {
+                "success": True,
+                "message": f"User '{name}' created successfully",
+                "face_count": len(face_encodings),
+                "processed_photos": processed_photos,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to create user")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error creating user: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+@app.delete("/api/users/{username}")
+async def delete_user(username: str, modules: dict = Depends(get_modules)):
+    """
+    Delete a user
+    """
+    try:
+        user_manager = modules["user_manager"]
+        
+        # Check if user exists
+        existing_user = user_manager.load_user(username)
+        if existing_user is None:
+            raise HTTPException(status_code=404, detail=f"User '{username}' not found")
+        
+        # Delete user
+        success = user_manager.delete_user(username)
+        
+        if success:
+            return {
+                "success": True,
+                "message": f"User '{username}' deleted successfully",
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to delete user")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error deleting user: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+@app.post("/api/recognize")
+async def recognize_face(request: RecognitionRequest, modules: dict = Depends(get_modules)):
+    """
+    Recognize face from base64 encoded image
+    """
+    try:
+        face_detector = modules["face_detector"]
+        face_recognizer = modules["face_recognizer"]
+        user_manager = modules["user_manager"]
+        
+        import base64
+        import numpy as np
+        import cv2
+        
+        # Decode base64 image
+        try:
+            # Remove data URL prefix if present
+            image_data = request.image_data
+            if ',' in image_data:
+                image_data = image_data.split(',')[1]
+            
+            # Decode base64
+            image_bytes = base64.b64decode(image_data)
+            
+            # Convert to numpy array
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                raise HTTPException(status_code=400, detail="Invalid image data")
+                
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to decode image: {str(e)}")
+        
+        # Detect faces in image
+        face_encodings = face_detector.detect_and_encode_cv2(image)
+        
+        if len(face_encodings) == 0:
+            return {
+                "success": True,
+                "recognized": False,
+                "message": "No faces detected in image",
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        # Load all users and prepare face recognizer
+        all_users = user_manager.load_all_users()
+        
+        # Clear and reload known faces in recognizer
+        face_recognizer.clear_known_faces()
+        for user in all_users:
+            for encoding in user.face_encodings:
+                face_recognizer.add_known_face(encoding, user.name)
+        
+        # Recognize faces
+        recognition_results = face_recognizer.recognize_faces(face_encodings)
+        
+        results = []
+        for result in recognition_results:
+            if result.is_match:
+                results.append({
+                    "name": result.user_name,
+                    "confidence": round(result.confidence, 3),
+                    "distance": round(1.0 - result.confidence, 3)  # Convert confidence back to distance
+                })
+        
+        return {
+            "success": True,
+            "recognized": len(results) > 0,
+            "faces_detected": len(face_encodings),
+            "results": results,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error in face recognition: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Recognition error: {str(e)}")
+
+@app.get("/api/camera/stream")
+async def camera_stream(modules: dict = Depends(get_modules)):
+    """
+    Get camera stream (placeholder for now)
+    """
+    try:
+        # This would typically stream video frames
+        # For now, we'll return a simple response
+        return {
+            "success": True,
+            "message": "Camera streaming endpoint",
+            "available": True,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"❌ Camera stream error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Camera error: {str(e)}")
 
 # Custom 404 handler
 @app.exception_handler(404)
