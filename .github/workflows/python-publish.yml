@@ -9,7 +9,7 @@ on:
     types: [published]
 
 permissions:
-  contents: read
+  contents: write
   packages: write
   id-token: write
 
@@ -35,35 +35,36 @@ jobs:
         python -m build
         ls -la dist/
     
-    - name: Install GitHub CLI
-      if: startsWith(github.ref, 'refs/tags/v')
-      run: |
-        type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
-        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-        && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-        && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-        && sudo apt update \
-        && sudo apt install gh -y
-    
     - name: Create GitHub Release with Python Package
       if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v1
+      with:
+        name: "Face Recognition System ${{ github.ref_name }}"
+        body: |
+          ## Python Package Release ${{ github.ref_name }}
+          
+          This release contains the Face Recognition System Python package.
+          
+          ### Installation
+          ```bash
+          # Download and install wheel
+          pip install face_recognition_system-*.whl
+          
+          # Or install source distribution
+          pip install face_recognition_system-*.tar.gz
+          ```
+          
+          ### Docker Image
+          ```bash
+          docker pull ghcr.io/ahmertsengol/face-auth-opencv:${{ github.ref_name }}
+          ```
+        files: |
+          dist/*.tar.gz
+          dist/*.whl
+        draft: false
+        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        # Create a GitHub Release with the Python package as an asset
-        TAG_NAME=${GITHUB_REF#refs/tags/}
-        RELEASE_NAME="Face Recognition System $TAG_NAME"
-        
-        # Create release
-        gh release create $TAG_NAME \
-          --title "$RELEASE_NAME" \
-          --notes "Python package release for Face Recognition System $TAG_NAME" \
-          --draft=false \
-          --prerelease=false \
-          dist/*.tar.gz \
-          dist/*.whl
-        
-        echo "✅ Python package uploaded to GitHub Release: $TAG_NAME"
     
     - name: Upload Package Artifacts
       uses: actions/upload-artifact@v4
