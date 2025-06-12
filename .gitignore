@@ -189,3 +189,4 @@ face_encodings/
 temp_faces/
 captured_images/ 
 screenshots/
+logs/*.txt
