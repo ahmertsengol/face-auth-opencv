@@ -12,7 +12,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 # Read requirements
 def read_requirements():
-    requirements_path = os.path.join("config", "requirements.txt")
+    requirements_path = os.path.join("config", "requirements-setup.txt")
     if os.path.exists(requirements_path):
         with open(requirements_path, "r", encoding="utf-8") as f:
             return [line.strip() for line in f if line.strip() and not line.startswith("#")]
