@@ -4,135 +4,93 @@ Quick solutions for common installation problems.
 
 ## Missing face_recognition_models Error
 
-**Error Message:**
+**Error:**
 ```
-Please install `face_recognition_models` with this command before using `face_recognition`:
+Please install `face_recognition_models` with this command:
 pip install git+https://github.com/ageitgey/face_recognition_models
 ```
 
-### Quick Fix
+**Fix:**
 ```bash
-# Install the missing package
 pip install git+https://github.com/ageitgey/face_recognition_models
-
-# Retry the test
-make test
-
-# Verify system status
-make status
+make test  # Verify fix
 ```
 
-## Complete Reinstallation
+## Camera Access Issues
 
-If the quick fix doesn't work:
+**Error:** Camera not detected or permission denied
 
+**Fix:**
 ```bash
-# Reinstall all requirements
+# Test camera
+python -c "import cv2; cap = cv2.VideoCapture(0); print('✅' if cap.read()[0] else '❌')"
+
+# macOS: Grant camera permissions in System Preferences
+# Linux: Add user to video group
+sudo usermod -a -G video $USER
+
+# Windows: Enable camera access in Settings
+```
+
+## Import Errors
+
+**Error:** ModuleNotFoundError for OpenCV, dlib, or face_recognition
+
+**Fix:**
+```bash
+# Reinstall dependencies
+pip install --upgrade pip
 pip install -r config/requirements.txt
 
-# Install face_recognition_models separately
-pip install git+https://github.com/ageitgey/face_recognition_models
-
-# Run system test
-make test
-
-# Run performance benchmark
-make benchmark
-```
-
-## Verification Checklist
-
-- ✅ Python 3.10+ installed
-- ✅ Virtual environment active
-- ✅ requirements.txt installed
-- ✅ face_recognition_models installed
-- ✅ Camera access granted
-
-## Quick Test
-
-```bash
-# Test Python imports
-python -c "
-import face_recognition
-import cv2
-import numpy as np
-print('✅ All packages installed successfully!')
-"
-
-# Run system diagnostics
-make test
-
-# Start the system
-make register
-```
-
-## If Problems Persist
-
-### Option 1: Clean Virtual Environment
-```bash
-# Remove and recreate environment
-make clean-venv
-make install
-```
-
-### Option 2: Manual Installation
-```bash
-# Install core packages manually
+# For specific modules
+pip install opencv-python==4.8.1.78
 pip install dlib
 pip install face-recognition
-pip install git+https://github.com/ageitgey/face_recognition_models
 ```
 
-### Option 3: Docker Alternative
+## Performance Issues
+
+**Symptoms:** Slow recognition, high memory usage
+
+**Fix:**
 ```bash
-# Use Docker instead
+# Optimize performance
+pip install opencv-python-headless  # Lighter version
+make optimize  # Clear cache
+
+# For low-memory systems
+export FACE_RECOGNITION_BATCH_SIZE=1
+```
+
+## Complete Reinstall
+
+If all else fails:
+```bash
+# Clean everything
+make clean
+rm -rf venv/
+
+# Fresh install
+make install
+make test
+```
+
+## Docker Issues
+
+**Error:** Docker build fails or container won't start
+
+**Fix:**
+```bash
+# Pull pre-built image
 docker pull ghcr.io/ahmertsengol/face-auth-opencv:latest
-docker run -p 8000:8000 -v face_data:/app/data ghcr.io/ahmertsengol/face-auth-opencv:latest
+
+# Or build locally
+docker build -t face-recognition .
+docker run -p 8000:8000 face-recognition
 ```
 
-## Common Issues
+## Get Help
 
-### Camera Permission Denied
-```bash
-# macOS: System Preferences → Security & Privacy → Camera
-# Linux: sudo usermod -a -G video $USER
-# Windows: Settings → Privacy → Camera
-```
-
-### CMake Errors (macOS)
-```bash
-# Install/reinstall CMake
-brew install cmake
-pip uninstall dlib
-pip install dlib
-```
-
-### Import Errors
-```bash
-# Check installed packages
-pip list | grep -E "(opencv|face-recognition|dlib)"
-
-# Reinstall problematic packages
-pip install --upgrade opencv-python face-recognition
-```
-
-### Memory Issues
-```bash
-# Clear cache and optimize
-make optimize
-
-# Check available memory
-free -h  # Linux
-vm_stat  # macOS
-```
-
-## Getting Additional Help
-
-1. **Check Documentation**: [INSTALLATION.md](INSTALLATION.md)
-2. **Review Logs**: `cat logs/app.log`
-3. **Report Issues**: [GitHub Issues](https://github.com/ahmertsengol/face-auth-opencv/issues)
-4. **Community Support**: [GitHub Discussions](https://github.com/ahmertsengol/face-auth-opencv/discussions)
-
----
-
-**✅ Your face recognition system should now be working correctly!** 
+- Check [Installation Guide](INSTALLATION.md)
+- Review [Quick Start](QUICKSTART.md)
+- Report issues on GitHub 

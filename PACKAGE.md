@@ -1,81 +1,93 @@
 # Package Distribution
 
-This project is available as both Docker images and Python packages through GitHub Packages and Releases.
+Available as Docker images and Python packages through GitHub.
 
 ## Docker Image
 
 ### Quick Start
 ```bash
-# Pull the latest version
+# Latest version
 docker pull ghcr.io/ahmertsengol/face-auth-opencv:latest
-
-# Run the container
-docker run -d \
-  --name face-recognition \
-  -p 8000:8000 \
-  -v face_data:/app/data \
-  ghcr.io/ahmertsengol/face-auth-opencv:latest
+docker run -p 8000:8000 ghcr.io/ahmertsengol/face-auth-opencv:latest
 ```
 
 ### Docker Compose
-```bash
-# Clone repository
-git clone https://github.com/ahmertsengol/face-auth-opencv.git
-cd face-auth-opencv
-
-# Start with Docker Compose
-docker-compose up -d
+```yaml
+version: '3.8'
+services:
+  face-recognition:
+    image: ghcr.io/ahmertsengol/face-auth-opencv:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - face_data:/app/data
 ```
 
 ### Available Tags
-- `latest` - Latest stable release
+- `latest` - Latest stable
 - `v2.2.4` - Specific version
-- `main` - Development branch
+- `main` - Development
 - `sha-xxxxxxx` - Specific commit
 
 ## Python Package
 
-### Installation from GitHub Releases
+### From GitHub Releases
 ```bash
-# Download from releases
-wget https://github.com/ahmertsengol/face-auth-opencv/releases/download/v2.2.4/face_recognition_system-2.2.0-py3-none-any.whl
+# Download latest release
+wget https://github.com/ahmertsengol/face-auth-opencv/releases/latest/download/face_recognition_system-2.2.0-py3-none-any.whl
 
-# Install the wheel
+# Install
 pip install face_recognition_system-2.2.0-py3-none-any.whl
 ```
 
-### Development Installation
+### From Source
 ```bash
-# Install from source
-pip install git+https://github.com/ahmertsengol/face-auth-opencv.git
+git clone https://github.com/ahmertsengol/face-auth-opencv.git
+cd face-auth-opencv
+pip install -e .
 ```
 
-### Programmatic Usage
+## Usage Examples
+
+### Docker with Volume
+```bash
+docker run -d \
+  --name face-recognition \
+  -p 8000:8000 \
+  -v $(pwd)/data:/app/data \
+  ghcr.io/ahmertsengol/face-auth-opencv:latest
+```
+
+### Python Import
 ```python
-from core.face_detector import FaceDetector
-from core.face_recognizer import FaceRecognizer
-from core.user_manager import UserManager
+from face_recognition_system import FaceRecognizer
 
-# Initialize components
-detector = FaceDetector()
 recognizer = FaceRecognizer()
-user_manager = UserManager()
-
-# Detect faces in an image
-faces = detector.detect_faces("path/to/image.jpg")
-
-# Recognize faces
-results = recognizer.recognize_faces("path/to/image.jpg")
+result = recognizer.recognize_image("path/to/image.jpg")
 ```
 
-### CLI Usage
+## Configuration
+
+### Environment Variables
 ```bash
-# Start web server
-face-recognition-server --host 0.0.0.0 --port 8000
-
-# CLI recognition
-face-recognition-cli --image path/to/image.jpg
+FACE_RECOGNITION_ENV=production
+LOG_LEVEL=info
+UPLOAD_DIR=/app/uploads
 ```
+
+### Docker Override
+```bash
+docker run -e FACE_RECOGNITION_ENV=production \
+  -p 8000:8000 \
+  ghcr.io/ahmertsengol/face-auth-opencv:latest
+```
+
+## Version History
+
+- **v2.2.4** - Production web dashboard
+- **v2.2.3** - Performance optimizations
+- **v2.2.2** - Docker multi-platform
+- **v2.2.1** - API improvements
 
 ## Package Information
 
@@ -83,35 +95,6 @@ face-recognition-cli --image path/to/image.jpg
 |-------------|---------------|------|---------|
 | Docker Image | v2.2.4 | ~800MB | ✅ Published |
 | Python Package | v2.2.0 | ~50MB | ✅ Published |
-
-## Configuration
-
-### Environment Variables
-```bash
-# Production mode
-FACE_RECOGNITION_ENV=production
-
-# Log level
-LOG_LEVEL=info
-
-# Database path
-DB_PATH=/app/data/face_encodings
-
-# Upload directory
-UPLOAD_DIR=/app/static/uploads
-```
-
-### Volume Mapping
-```bash
-# Data persistence
--v face_data:/app/data
-
-# Log persistence  
--v face_logs:/app/logs
-
-# Upload persistence
--v face_uploads:/app/static/uploads
-```
 
 ## Features Included
 

@@ -2,91 +2,68 @@
 
 Get your face recognition system running in under 5 minutes.
 
-## Installation
+## 1. Installation
 
 ```bash
-# Clone the repository
+# Docker (Fastest)
+docker run -p 8000:8000 ghcr.io/ahmertsengol/face-auth-opencv:latest
+
+# From Source
 git clone https://github.com/ahmertsengol/face-auth-opencv.git
-cd face-auth-opencv
-
-# One-command setup (2-3 minutes)
-make install
-
-# Verify installation
-make status
+cd face-auth-opencv && make install
 ```
 
-## First Usage
+## 2. First User
 
-### Register a User
+**Web Interface** (Recommended):
+1. Open `http://localhost:8000`
+2. Click "Add New User"
+3. Enter name + upload photos or use camera
+4. Click "Add User"
+
+**Command Line**:
 ```bash
-# Start user registration
-make register
-
-# Follow the prompts:
-# 1. Enter your name
-# 2. Camera opens
-# 3. Press 's' to capture 5 photos
-# 4. Press 'q' when done
+make register  # Follow prompts
 ```
 
-### Start Recognition
+## 3. Start Recognition
+
+**Web Dashboard**:
+- Click "Live Recognition" or visit `/live-recognition`
+- Allow camera access
+- Your face will be recognized automatically
+
+**Command Line**:
 ```bash
-# Begin face recognition
-make recognize
-
-# Camera opens and automatically detects faces
-# Your name appears when recognized
+make recognize  # Opens camera window
 ```
 
-### Web Interface
-```bash
-# Start the web server
-uvicorn api.main:app --reload
+## Key Features
 
-# Open browser: http://localhost:8000
-# Use the modern dashboard interface
-```
-
-## Essential Commands
-
-| What you want to do | Command |
-|---------------------|---------|
-| Add a user | `make register` |
-| Start recognition | `make recognize` |
-| List users | `make list` |
-| Check system | `make status` |
-| Delete a user | `make delete` |
-| Run tests | `make test` |
-
-## Quick Reference
-
-### Key Controls
-- **'s'** → Capture photo (during registration)
-- **'q'** → Quit/Exit
-
-### Docker Alternative
-```bash
-# Quick Docker setup
-docker pull ghcr.io/ahmertsengol/face-auth-opencv:latest
-docker run -p 8000:8000 -v face_data:/app/data ghcr.io/ahmertsengol/face-auth-opencv:latest
-```
+- **Dashboard**: User management, analytics, system health
+- **Live Recognition**: Full-screen camera interface
+- **API**: RESTful endpoints at `/docs`
+- **Themes**: Dark/light mode toggle
 
 ## Troubleshooting
 
 ```bash
-# If something goes wrong
-make status      # Check system health
-make test        # Run diagnostics
-make help        # Show all commands
+# Check status
+make status
+
+# Fix common issues
+make clean && make install
+
+# Test camera
+python -c "import cv2; cap = cv2.VideoCapture(0); print('✅' if cap.read()[0] else '❌')"
 ```
 
-## What's Next?
+## Next Steps
 
-1. **Add more users**: Run `make register` again
-2. **Web dashboard**: Visit `http://localhost:8000`
-3. **Performance check**: Run `make benchmark`
-4. **Read full docs**: Check [INSTALLATION.md](INSTALLATION.md)
+- Add multiple users for testing
+- Explore API documentation at `/docs`
+- Check system metrics in dashboard
+- Review [Installation Guide](INSTALLATION.md) for advanced setup
 
 ---
 
