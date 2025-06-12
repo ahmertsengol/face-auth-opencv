@@ -1,249 +1,308 @@
-# 🚀 **Installation Guide - Yeni PC'de Kurulum**
+# Installation Guide
 
-Bu rehber, **Optimize Face Recognition System**'i sıfırdan yeni bir bilgisayarda kurmak için hazırlanmıştır.
+Complete installation instructions for setting up the Face Recognition System on a new machine.
 
-## 📋 **Sistem Gereksinimleri**
+## System Requirements
 
-### **Minimum Gereksinimler:**
+**Minimum Requirements**
 - **OS**: macOS 10.15+, Ubuntu 18.04+, Windows 10+
-- **Python**: 3.10 veya üzeri
-- **RAM**: 4GB (8GB önerilen)
-- **Disk**: 2GB boş alan
-- **Kamera**: USB webcam veya built-in kamera
+- **Python**: 3.10 or higher
+- **RAM**: 4GB (8GB recommended)
+- **Storage**: 2GB free space
+- **Camera**: USB webcam or built-in camera
 
-### **macOS Özel Gereksinimler:**
+## Platform-Specific Prerequisites
+
+### macOS
 ```bash
-# Homebrew yükle (yoksa)
+# Install Homebrew (if not installed)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# CMake yükle
+# Install CMake
 brew install cmake
 ```
 
-### **Ubuntu/Linux Özel Gereksinimler:**
+### Ubuntu/Linux
 ```bash
-# Sistem paketlerini güncelle
+# Update system packages
 sudo apt update
 
-# Python ve gerekli kütüphaneler
+# Install Python and dependencies
 sudo apt install python3 python3-pip python3-venv
 sudo apt install cmake build-essential
 sudo apt install libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev
 ```
 
-## 📦 **Adım 1: Projeyi İndir**
+### Windows
+- Install [Python 3.10+](https://python.org/downloads)
+- Install [Visual Studio Build Tools](https://visualstudio.microsoft.com/downloads/)
+- Install [Git for Windows](https://git-scm.com/download/win)
 
-### **Git ile İndir (Önerilen):**
+## Quick Installation
+
+### Method 1: Automatic Setup (Recommended)
 ```bash
-# Projeyi klonla
+# Clone the repository
 git clone https://github.com/ahmertsengol/face-auth-opencv.git
 cd face-auth-opencv
 
-# Son release'e geç
-git checkout v2.0.0
-```
-
-### **ZIP ile İndir:**
-```bash
-# GitHub'dan ZIP indir ve çıkart
-wget https://github.com/ahmertsengol/face-auth-opencv/archive/v2.0.0.zip
-unzip v2.0.0.zip
-cd face-auth-opencv-2.0.0
-```
-
-## ⚙️ **Adım 2: Otomatik Kurulum**
-
-### **Tek Komutla Kurulum:**
-```bash
-# Sistemi kur ve test et
+# One-command installation
 make install
+
+# Verify installation
 make test
 ```
 
-Bu komut şunları yapar:
-- ✅ Python virtual environment oluşturur
-- ✅ Tüm dependency'leri yükler
-- ✅ Konfigürasyon dosyalarını oluşturur
-- ✅ Veri dizinlerini hazırlar
-- ✅ Sistem testlerini çalıştırır
-
-## 🔍 **Adım 3: Kurulum Kontrolü**
-
+### Method 2: Docker Installation
 ```bash
-# Sistem durumunu kontrol et
-make status
+# Pull and run the Docker image
+docker pull ghcr.io/ahmertsengol/face-auth-opencv:latest
+
+# Run with volume mounting
+docker run -d \
+  --name face-recognition \
+  -p 8000:8000 \
+  -v face_data:/app/data \
+  ghcr.io/ahmertsengol/face-auth-opencv:latest
+
+# Access web interface
+open http://localhost:8000
 ```
 
-**Beklenen Çıktı:**
-```
-📊 Sistem Durumu
-==================
-✅ Sanal ortam: Hazır
-  Python 3.11.9
-✅ Konfigürasyon: Hazır
-  Dosya: config/app_config.json
-✅ Veri dizini: Hazır
-  Kullanıcı sayısı: 0
-✅ Log dizini: Hazır
-```
-
-## 🎯 **Adım 4: İlk Kullanım**
-
-### **4.1 İlk Kullanıcıyı Kaydet:**
+### Method 3: Manual Installation
 ```bash
-make register
-# İsim: Ahmet (enter)
-# Kamera açılır → 's' ile 5 fotoğraf çek → 'q' ile çık
-```
-
-### **4.2 Yüz Tanımayı Test Et:**
-```bash
-make recognize
-# Kamera açılır → Yüzünü göster → Tanıma sonucu
-```
-
-### **4.3 Sistem Performansını Test Et:**
-```bash
-make benchmark
-# Performance: ~1.3ms/frame
-# FPS: 15-30
-# Memory: Optimal
-```
-
-## 🛠️ **Manuel Kurulum (Sorun Çıkarsa)**
-
-### **5.1 Virtual Environment Oluştur:**
-```bash
+# Create virtual environment
 python3 -m venv venv_face_recognition
 source venv_face_recognition/bin/activate  # macOS/Linux
 # venv_face_recognition\Scripts\activate  # Windows
-```
 
-### **5.2 Dependencies Yükle:**
-```bash
+# Install dependencies
 pip install --upgrade pip
 pip install -r config/requirements.txt
+
+# Verify installation
+python -c "import face_recognition, cv2; print('Installation successful')"
 ```
 
-### **5.3 Konfigürasyon Oluştur:**
+## Verification
+
+### System Health Check
 ```bash
-python -c "
-from config.app_config import get_config_manager
-config_manager = get_config_manager()
-config_manager.save_config()
-print('✅ Konfigürasyon oluşturuldu')
-"
+# Check installation status
+make status
 ```
 
-### **5.4 Test Et:**
-```bash
-python main.py --help
+**Expected Output:**
+```
+📊 System Status
+==================
+✅ Virtual Environment: Ready
+  Python 3.11.9
+✅ Configuration: Ready
+  File: config/app_config.json
+✅ Data Directory: Ready
+  Users: 0
+✅ Log Directory: Ready
 ```
 
-## 📱 **Kamera Ayarları**
-
-### **macOS:**
+### Performance Test
 ```bash
-# Kamera izni ver
-# System Preferences → Security & Privacy → Camera → Terminal/Python
+# Run benchmark test
+make benchmark
+
+# Expected: ~1.3ms/frame processing time
 ```
 
-### **Linux:**
+## First Usage
+
+### 1. Register Your First User
 ```bash
-# Kullanıcıyı video grubuna ekle
+# Start user registration
+make register
+
+# Follow prompts:
+# - Enter name
+# - Camera opens → Press 's' to capture 5 photos
+# - Press 'q' to exit
+```
+
+### 2. Test Face Recognition
+```bash
+# Start recognition mode
+make recognize
+
+# Camera opens → Show your face → Recognition results appear
+```
+
+### 3. Web Dashboard
+```bash
+# Start web server
+uvicorn api.main:app --reload
+
+# Open browser: http://localhost:8000
+# Use the modern web interface
+```
+
+## Camera Configuration
+
+### macOS
+- Grant camera permissions:
+  - System Preferences → Security & Privacy → Camera
+  - Enable access for Terminal/Python
+
+### Linux
+```bash
+# Add user to video group
 sudo usermod -a -G video $USER
-# Oturumu yeniden başlat
+
+# Logout and login again
 ```
 
-### **Windows:**
-```bash
-# Windows Defender → Camera privacy settings → Allow apps
-```
+### Windows
+- Windows Settings → Privacy → Camera
+- Allow camera access for applications
 
-## 🚨 **Sorun Giderme**
+## Troubleshooting
 
-### **Kamera Açılmıyor:**
+### Camera Issues
 ```bash
-# Kamera testi
+# Test camera access
 python -c "
 import cv2
 cap = cv2.VideoCapture(0)
 if cap.isOpened():
-    print('✅ Kamera çalışıyor')
+    print('✅ Camera working')
 else:
-    print('❌ Kamera sorunu')
+    print('❌ Camera issue')
 cap.release()
 "
 ```
 
-### **Import Hataları:**
+### Import Errors
 ```bash
-# Dependencies kontrol
-pip list | grep -E "(opencv|numpy|dlib)"
+# Check installed packages
+pip list | grep -E "(opencv|numpy|dlib|face-recognition)"
 
-# Eksikse yeniden yükle
+# Reinstall if missing
 pip install opencv-python==4.8.1.78
+pip install face-recognition
 ```
 
-### **CMake Hataları (macOS):**
+### CMake Errors (macOS)
 ```bash
+# Reinstall dlib with CMake
 brew install cmake
 pip uninstall dlib
 pip install dlib
 ```
 
-### **Memory Hataları:**
+### Missing face_recognition_models
 ```bash
-# Cache temizle
+# Install missing models
+pip install git+https://github.com/ageitgey/face_recognition_models
+```
+
+### Memory Issues
+```bash
+# Clear cache and optimize
 make optimize
 
-# Konfigürasyonu resetle
-python -c "
-from config.app_config import get_config_manager
-get_config_manager().reset_to_default()
-"
+# Reset configuration
+rm -rf config/app_config.json
+python -c "from config.app_config import get_config_manager; get_config_manager().save_config()"
 ```
 
-## 📊 **Kurulum Sonrası Komutlar**
-
-| Komut | Açıklama |
-|-------|----------|
-| `make status` | Sistem durumu |
-| `make register` | Kullanıcı kaydet |
-| `make recognize` | Yüz tanıma başlat |
-| `make list` | Kullanıcıları listele |
-| `make test` | Sistem testleri |
-| `make benchmark` | Performance testi |
-| `make backup` | Veri yedekle |
-| `make help` | Tüm komutlar |
-
-## 🎉 **Başarılı Kurulum Kontrolü**
-
-Kurulum başarılıysa şu komutlar çalışmalı:
-
+### Virtual Environment Issues
 ```bash
-# 1. Sistem durumu ✅
-make status
-
-# 2. Test suite ✅ (8/8 passed)
-make test  
-
-# 3. Benchmark ✅ (~1.3ms/frame)
-make benchmark
-
-# 4. Kullanıcı kaydı ✅
-make register
-
-# 5. Yüz tanıma ✅
-make recognize
+# Remove and recreate environment
+make clean-venv
+make install
 ```
 
-## 📞 **Destek**
+## Advanced Configuration
 
-Sorun yaşarsan:
-1. `make status` çalıştır
-2. `make test` sonuçlarını kontrol et
-3. `logs/app.log` dosyasını incele
-4. GitHub Issues'da yeni ticket aç
+### Environment Variables
+```bash
+# Create .env file
+cat > .env << EOF
+FACE_RECOGNITION_ENV=production
+LOG_LEVEL=info
+DB_PATH=./data/face_encodings
+UPLOAD_DIR=./static/uploads
+EOF
+```
 
-**🚀 Kurulum tamamlandı! Face Recognition System kullanıma hazır!** 
+### Custom Settings
+```bash
+# Edit configuration
+nano config/app_config.json
+
+# Key settings:
+# - detection_threshold: Face detection sensitivity
+# - recognition_tolerance: Recognition accuracy
+# - max_faces: Maximum faces per user
+```
+
+## Performance Optimization
+
+### Hardware Acceleration (Optional)
+```bash
+# Install GPU-accelerated OpenCV (if CUDA available)
+pip uninstall opencv-python
+pip install opencv-contrib-python
+```
+
+### Memory Optimization
+```bash
+# Configure for low-memory systems
+export FACE_RECOGNITION_BATCH_SIZE=1
+export OPENCV_LOG_LEVEL=ERROR
+```
+
+## Update and Maintenance
+
+### Update to Latest Version
+```bash
+# Pull latest changes
+git pull origin main
+
+# Update dependencies
+pip install -r config/requirements.txt --upgrade
+
+# Run tests
+make test
+```
+
+### Backup Data
+```bash
+# Backup user data
+make backup
+
+# Backup location: ./backups/face_data_YYYYMMDD_HHMMSS.tar.gz
+```
+
+### Log Management
+```bash
+# View logs
+make logs
+
+# Clear old logs
+find logs/ -name "*.log" -mtime +30 -delete
+```
+
+## Support
+
+### Getting Help
+- **Documentation**: Check [QUICKSTART.md](QUICKSTART.md) for quick setup
+- **Issues**: Report problems on [GitHub Issues](https://github.com/ahmertsengol/face-auth-opencv/issues)
+- **Discussions**: Join [GitHub Discussions](https://github.com/ahmertsengol/face-auth-opencv/discussions)
+
+### Common Solutions
+1. **Installation fails**: Try manual installation method
+2. **Camera not detected**: Check permissions and drivers
+3. **Poor performance**: Run `make optimize` and check system resources
+4. **Import errors**: Verify all dependencies are installed
+
+---
+
+**Installation complete! Your face recognition system is ready to use.** 

@@ -1,50 +1,56 @@
-# 📦 Face Recognition System - GitHub Packages
+# Package Distribution
 
-Bu proje için GitHub Packages'ta aşağıdaki paketler mevcuttur:
+This project is available as both Docker images and Python packages through GitHub Packages and Releases.
 
-## 🐳 Docker Image
+## Docker Image
 
-### Kullanım:
+### Quick Start
 ```bash
-# En son sürümü çek
-docker pull ghcr.io/yourusername/image_processing:latest
+# Pull the latest version
+docker pull ghcr.io/ahmertsengol/face-auth-opencv:latest
 
-# Container'ı çalıştır
+# Run the container
 docker run -d \
   --name face-recognition \
   -p 8000:8000 \
   -v face_data:/app/data \
-  ghcr.io/yourusername/image_processing:latest
+  ghcr.io/ahmertsengol/face-auth-opencv:latest
 ```
 
-### Docker Compose ile:
+### Docker Compose
 ```bash
-# Bu repository'yi klon et
-git clone https://github.com/yourusername/image_processing.git
-cd image_processing
+# Clone repository
+git clone https://github.com/ahmertsengol/face-auth-opencv.git
+cd face-auth-opencv
 
-# Docker Compose ile başlat
+# Start with Docker Compose
 docker-compose up -d
 ```
 
-### Mevcut Tag'ler:
-- `latest` - En son stable sürüm
-- `v2.2.0` - Specific version
+### Available Tags
+- `latest` - Latest stable release
+- `v2.2.4` - Specific version
 - `main` - Development branch
 - `sha-xxxxxxx` - Specific commit
 
-## 🐍 Python Package
+## Python Package
 
-### Kurulum:
+### Installation from GitHub Releases
 ```bash
-# PyPI'dan kur (henüz yayınlanmadı)
-pip install face-recognition-system
+# Download from releases
+wget https://github.com/ahmertsengol/face-auth-opencv/releases/download/v2.2.4/face_recognition_system-2.2.0-py3-none-any.whl
 
-# Veya development sürümü için
-pip install git+https://github.com/yourusername/image_processing.git
+# Install the wheel
+pip install face_recognition_system-2.2.0-py3-none-any.whl
 ```
 
-### Programmatic Kullanım:
+### Development Installation
+```bash
+# Install from source
+pip install git+https://github.com/ahmertsengol/face-auth-opencv.git
+```
+
+### Programmatic Usage
 ```python
 from core.face_detector import FaceDetector
 from core.face_recognizer import FaceRecognizer
@@ -62,25 +68,25 @@ faces = detector.detect_faces("path/to/image.jpg")
 results = recognizer.recognize_faces("path/to/image.jpg")
 ```
 
-### CLI Kullanımı:
+### CLI Usage
 ```bash
-# Web server'ı başlat
+# Start web server
 face-recognition-server --host 0.0.0.0 --port 8000
 
-# CLI ile kullan
+# CLI recognition
 face-recognition-cli --image path/to/image.jpg
 ```
 
-## 📋 Mevcut Sürümler
+## Package Information
 
-| Package Type | Latest Version | Size | Downloads |
-|-------------|---------------|------|-----------|
-| Docker Image | v2.2.0 | ~800MB | ![Downloads](https://img.shields.io/docker/pulls/ghcr.io/yourusername/image_processing) |
-| Python Package | v2.2.0 | ~50MB | ![Downloads](https://img.shields.io/pypi/dm/face-recognition-system) |
+| Package Type | Latest Version | Size | Status |
+|-------------|---------------|------|---------|
+| Docker Image | v2.2.4 | ~800MB | ✅ Published |
+| Python Package | v2.2.0 | ~50MB | ✅ Published |
 
-## 🔧 Konfigürasyon
+## Configuration
 
-### Environment Variables:
+### Environment Variables
 ```bash
 # Production mode
 FACE_RECOGNITION_ENV=production
@@ -95,7 +101,7 @@ DB_PATH=/app/data/face_encodings
 UPLOAD_DIR=/app/static/uploads
 ```
 
-### Volume Mapping:
+### Volume Mapping
 ```bash
 # Data persistence
 -v face_data:/app/data
@@ -107,52 +113,75 @@ UPLOAD_DIR=/app/static/uploads
 -v face_uploads:/app/static/uploads
 ```
 
-## 🚀 Özellikler
+## Features Included
 
-### ✅ Docker Image İçeriği:
-- 🔥 **FastAPI web server** with async support
-- 🎨 **Modern web dashboard** with live recognition
-- 📷 **Camera capture** functionality
-- 📊 **Real-time analytics** and monitoring
-- 🔒 **Security** - runs as non-root user
-- 🏥 **Health checks** built-in
-- 📦 **Multi-arch support** (AMD64 + ARM64)
+### Docker Image Contents
+- FastAPI web server with async support
+- Modern web dashboard with live recognition
+- Camera capture functionality
+- Real-time analytics and monitoring
+- Security - runs as non-root user
+- Health checks built-in
+- Multi-arch support (AMD64 + ARM64)
 
-### ✅ Python Package İçeriği:
-- 🧠 **Core face detection** and recognition modules
-- 📚 **User management** system
-- 🎯 **High-level APIs** for easy integration
-- 🔧 **CLI tools** for batch processing
-- 📖 **Comprehensive documentation**
-- 🧪 **Unit tests** included
+### Python Package Contents
+- Core face detection and recognition modules
+- User management system
+- High-level APIs for easy integration
+- CLI tools for batch processing
+- Comprehensive documentation
+- Unit tests included
 
-## 🔄 Güncelleme
+## Updates
 
-### Docker Image:
+### Docker Image
 ```bash
-# En son sürümü çek
-docker pull ghcr.io/yourusername/image_processing:latest
+# Pull latest version
+docker pull ghcr.io/ahmertsengol/face-auth-opencv:latest
 
-# Container'ı yeniden başlat
+# Restart container
 docker-compose pull && docker-compose up -d
 ```
 
-### Python Package:
+### Python Package
 ```bash
-# Package'i güncelle
-pip install --upgrade face-recognition-system
+# Download latest release
+# Visit: https://github.com/ahmertsengol/face-auth-opencv/releases
+
+# Install updated package
+pip install --upgrade /path/to/new/wheel/file.whl
 ```
 
-## 📞 Destek
+## Registry Information
 
-- 🐛 **Issues:** [GitHub Issues](https://github.com/yourusername/image_processing/issues)
-- 📖 **Docs:** [Wiki](https://github.com/yourusername/image_processing/wiki)
-- 💬 **Discussions:** [GitHub Discussions](https://github.com/yourusername/image_processing/discussions)
+### Docker Registry
+- **Registry**: GitHub Container Registry (ghcr.io)
+- **Repository**: `ghcr.io/ahmertsengol/face-auth-opencv`
+- **Visibility**: Public
+- **Multi-platform**: AMD64, ARM64
 
-## 📄 Lisans
+### Python Distribution
+- **Method**: GitHub Releases
+- **Format**: Python Wheel (.whl) and Source Distribution (.tar.gz)
+- **Visibility**: Public
+- **Download**: Direct from releases page
 
-MIT License - Detaylar için [LICENSE](LICENSE) dosyasına bakın.
+## Support
+
+### Documentation
+- **Installation Guide**: [INSTALLATION.md](INSTALLATION.md)
+- **Quick Start**: [QUICKSTART.md](QUICKSTART.md)
+- **API Documentation**: Available at `/docs` endpoint
+
+### Community
+- **Issues**: [GitHub Issues](https://github.com/ahmertsengol/face-auth-opencv/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/ahmertsengol/face-auth-opencv/discussions)
+- **Releases**: [GitHub Releases](https://github.com/ahmertsengol/face-auth-opencv/releases)
+
+## License
+
+MIT License - See [LICENSE](LICENSE) for full details.
 
 ---
 
-**Made with ❤️ by Ahmed Taner** 
+**Enterprise-ready distribution with professional deployment options** 

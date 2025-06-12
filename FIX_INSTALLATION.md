@@ -1,80 +1,138 @@
-# 🔧 **Hızlı Çözüm - Kurulum Sorunları**
+# Installation Troubleshooting
 
-## 🚨 **Mevcut Hata: face_recognition_models eksik**
+Quick solutions for common installation problems.
 
+## Missing face_recognition_models Error
+
+**Error Message:**
 ```
 Please install `face_recognition_models` with this command before using `face_recognition`:
 pip install git+https://github.com/ageitgey/face_recognition_models
 ```
 
-## ✅ **Hızlı Çözüm:**
-
+### Quick Fix
 ```bash
-# 1. Eksik paketi yükle
+# Install the missing package
 pip install git+https://github.com/ageitgey/face_recognition_models
 
-# 2. Testi tekrar çalıştır
+# Retry the test
 make test
 
-# 3. Sistem durumunu kontrol et
+# Verify system status
 make status
 ```
 
-## 🔄 **Tam Çözüm (Eğer hala hata varsa):**
+## Complete Reinstallation
+
+If the quick fix doesn't work:
 
 ```bash
-# 1. Requirements'ı yeniden yükle
+# Reinstall all requirements
 pip install -r config/requirements.txt
 
-# 2. face_recognition_models'ı ekstra yükle
+# Install face_recognition_models separately
 pip install git+https://github.com/ageitgey/face_recognition_models
 
-# 3. Sistemi test et
+# Run system test
 make test
 
-# 4. Benchmark çalıştır
+# Run performance benchmark
 make benchmark
 ```
 
-## 📋 **Kontrol Listesi:**
+## Verification Checklist
 
-- ✅ Python 3.10+ yüklü
-- ✅ Virtual environment aktif
-- ✅ requirements.txt yüklendi
-- ✅ face_recognition_models yüklendi
-- ✅ Kamera erişimi var
+- ✅ Python 3.10+ installed
+- ✅ Virtual environment active
+- ✅ requirements.txt installed
+- ✅ face_recognition_models installed
+- ✅ Camera access granted
 
-## 🎯 **Hızlı Test:**
+## Quick Test
 
 ```bash
-# Python import testi
+# Test Python imports
 python -c "
 import face_recognition
 import cv2
 import numpy as np
-print('✅ Tüm paketler yüklü!')
+print('✅ All packages installed successfully!')
 "
 
-# Sistem testi
+# Run system diagnostics
 make test
 
-# Başlat!
+# Start the system
 make register
 ```
 
-## 📞 **Hala Sorun Varsa:**
+## If Problems Persist
 
-1. Virtual environment'ı yeniden oluştur:
+### Option 1: Clean Virtual Environment
 ```bash
+# Remove and recreate environment
 make clean-venv
 make install
 ```
 
-2. Manuel kurulum yap:
+### Option 2: Manual Installation
 ```bash
+# Install core packages manually
 pip install dlib
 pip install face-recognition
 pip install git+https://github.com/ageitgey/face_recognition_models
 ```
 
-**🚀 Sorun çözüldü! Sistem kullanıma hazır!** 
+### Option 3: Docker Alternative
+```bash
+# Use Docker instead
+docker pull ghcr.io/ahmertsengol/face-auth-opencv:latest
+docker run -p 8000:8000 -v face_data:/app/data ghcr.io/ahmertsengol/face-auth-opencv:latest
+```
+
+## Common Issues
+
+### Camera Permission Denied
+```bash
+# macOS: System Preferences → Security & Privacy → Camera
+# Linux: sudo usermod -a -G video $USER
+# Windows: Settings → Privacy → Camera
+```
+
+### CMake Errors (macOS)
+```bash
+# Install/reinstall CMake
+brew install cmake
+pip uninstall dlib
+pip install dlib
+```
+
+### Import Errors
+```bash
+# Check installed packages
+pip list | grep -E "(opencv|face-recognition|dlib)"
+
+# Reinstall problematic packages
+pip install --upgrade opencv-python face-recognition
+```
+
+### Memory Issues
+```bash
+# Clear cache and optimize
+make optimize
+
+# Check available memory
+free -h  # Linux
+vm_stat  # macOS
+```
+
+## Getting Additional Help
+
+1. **Check Documentation**: [INSTALLATION.md](INSTALLATION.md)
+2. **Review Logs**: `cat logs/app.log`
+3. **Report Issues**: [GitHub Issues](https://github.com/ahmertsengol/face-auth-opencv/issues)
+4. **Community Support**: [GitHub Discussions](https://github.com/ahmertsengol/face-auth-opencv/discussions)
+
+---
+
+**✅ Your face recognition system should now be working correctly!** 

@@ -1,62 +1,93 @@
-# ⚡ **Quick Start - 5 Dakikada Başla**
+# Quick Start Guide
 
-Sadece **3 komut** ile face recognition sistemi çalıştır!
+Get your face recognition system running in under 5 minutes.
 
-## 🚀 **Hızlı Kurulum**
+## Installation
 
 ```bash
-# 1. Projeyi klonla
+# Clone the repository
 git clone https://github.com/ahmertsengol/face-auth-opencv.git
 cd face-auth-opencv
 
-# 2. Sistemi kur (2-3 dakika)
+# One-command setup (2-3 minutes)
 make install
 
-# 3. Test et
+# Verify installation
 make status
 ```
 
-## 👤 **İlk Kullanım (2 dakika)**
+## First Usage
 
+### Register a User
 ```bash
-# Kullanıcı kaydet
+# Start user registration
 make register
-# → İsminizi yazın
-# → Kameraya bakın  
-# → 's' tuşu ile 5 fotoğraf çekin
 
-# Yüz tanımayı başlat
-make recognize
-# → Kameraya bakın
-# → Otomatik tanıma başlar!
+# Follow the prompts:
+# 1. Enter your name
+# 2. Camera opens
+# 3. Press 's' to capture 5 photos
+# 4. Press 'q' when done
 ```
 
-## 🎮 **Temel Komutlar**
+### Start Recognition
+```bash
+# Begin face recognition
+make recognize
 
-| Ne Yapmak İstiyorsun? | Komut |
-|----------------------|-------|
-| Kullanıcı ekle | `make register` |
-| Yüz tanıma başlat | `make recognize` |
-| Kimler kayıtlı? | `make list` |
-| Sistem durumu? | `make status` |
-| Birini sil | `make delete USER=isim` |
+# Camera opens and automatically detects faces
+# Your name appears when recognized
+```
 
-## 🚨 **Sorun mu var?**
+### Web Interface
+```bash
+# Start the web server
+uvicorn api.main:app --reload
+
+# Open browser: http://localhost:8000
+# Use the modern dashboard interface
+```
+
+## Essential Commands
+
+| What you want to do | Command |
+|---------------------|---------|
+| Add a user | `make register` |
+| Start recognition | `make recognize` |
+| List users | `make list` |
+| Check system | `make status` |
+| Delete a user | `make delete` |
+| Run tests | `make test` |
+
+## Quick Reference
+
+### Key Controls
+- **'s'** → Capture photo (during registration)
+- **'q'** → Quit/Exit
+
+### Docker Alternative
+```bash
+# Quick Docker setup
+docker pull ghcr.io/ahmertsengol/face-auth-opencv:latest
+docker run -p 8000:8000 -v face_data:/app/data ghcr.io/ahmertsengol/face-auth-opencv:latest
+```
+
+## Troubleshooting
 
 ```bash
-# Sistem kontrolü
-make status
-
-# Test çalıştır
-make test
-
-# Yardım al
-make help
+# If something goes wrong
+make status      # Check system health
+make test        # Run diagnostics
+make help        # Show all commands
 ```
 
-## 🎯 **Önemli Tuşlar**
+## What's Next?
 
-- **'s'** → Fotoğraf çek (kayıt sırasında)
-- **'q'** → Çık/Durdur
+1. **Add more users**: Run `make register` again
+2. **Web dashboard**: Visit `http://localhost:8000`
+3. **Performance check**: Run `make benchmark`
+4. **Read full docs**: Check [INSTALLATION.md](INSTALLATION.md)
 
-**🎉 Bu kadar! 5 dakikada hazır!** 
+---
+
+**🎉 That's it! Your face recognition system is ready to use.** 
