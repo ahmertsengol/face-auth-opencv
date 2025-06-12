@@ -1,0 +1,17 @@
+# Simple Docker Compose for Face Recognition System
+# Quick local development setup
+
+version: '3.8'
+
+services:
+  face-recognition:
+    image: face-recognition-local
+    container_name: face-recognition-simple
+    ports:
+      - "8000:8000"
+    volumes:
+      - face_data_simple:/app/data
+    restart: unless-stopped
+
+volumes:
+  face_data_simple: 

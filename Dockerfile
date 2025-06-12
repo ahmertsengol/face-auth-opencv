@@ -57,6 +57,14 @@ RUN apt-get update && apt-get install -y \
     libxrender-dev \
     libgomp1 \
     libgtk-3-0 \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libxext6 \
+    libsm6 \
+    libxrender1 \
+    libfontconfig1 \
+    libice6 \
+    libopenblas-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
