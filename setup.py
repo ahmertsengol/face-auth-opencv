@@ -21,16 +21,16 @@ def read_requirements():
 setup(
     name="face-recognition-system",
     version="2.2.0",
-    author="Ahmed Taner",
-    author_email="your-email@example.com",
+    author="Ahmed Mert",
+    author_email="ahmertsengol@gmail.com",
     description="A modern AI-powered face recognition system with web dashboard",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/image_processing",
+    url="https://github.com/ahmertsengol/face-auth-opencv",
     project_urls={
-        "Bug Tracker": "https://github.com/yourusername/image_processing/issues",
-        "Documentation": "https://github.com/yourusername/image_processing/wiki",
-        "Source Code": "https://github.com/yourusername/image_processing",
+        "Bug Tracker": "https://github.com/ahmertsengol/face-auth-opencv/issues",
+        "Documentation": "https://github.com/ahmertsengol/face-auth-opencv/wiki",
+        "Source Code": "https://github.com/ahmertsengol/face-auth-opencv",
     },
     packages=find_packages(include=["core", "core.*", "api", "api.*"]),
     classifiers=[
