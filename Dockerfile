@@ -20,16 +20,25 @@ RUN apt-get update && apt-get install -y \
     libgtk-3-dev \
     python3-dev \
     git \
+    pkg-config \
+    libdlib-dev \
+    libboost-all-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Create virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy requirements and install Python dependencies
-COPY config/requirements.txt /tmp/requirements.txt
+# Copy requirements and install Python dependencies in stages
+COPY config/requirements-base.txt /tmp/requirements-base.txt
+COPY config/requirements-heavy.txt /tmp/requirements-heavy.txt
+
+# Install base packages first (fast)
 RUN pip install --upgrade pip setuptools wheel && \
-    pip install -r /tmp/requirements.txt
+    pip install --no-cache-dir -r /tmp/requirements-base.txt
+
+# Install heavy packages with extended timeout
+RUN pip install --no-cache-dir --timeout 1800 -r /tmp/requirements-heavy.txt
 
 # Production stage
 FROM python:3.11-slim as production
