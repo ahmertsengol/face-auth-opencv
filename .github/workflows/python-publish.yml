@@ -1,7 +1,8 @@
-name: Upload Python Package
+name: Publish Python Package
 
 on:
   push:
+    branches: [ main ]
     tags:
       - 'v*.*.*'
   release:
@@ -10,38 +11,53 @@ on:
 permissions:
   contents: read
   packages: write
+  id-token: write
 
 jobs:
-  deploy:
+  build-and-publish:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
     
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
     
-    - name: Install dependencies
+    - name: Install build dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install build twine
+        pip install build twine wheel setuptools
     
     - name: Build package
-      run: python -m build
-    
-    - name: Publish package to GitHub Packages
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-        TWINE_REPOSITORY_URL: https://upload.pypi.org/legacy/
       run: |
-        twine upload dist/*
+        python -m build
+        ls -la dist/
     
-    - name: Publish to GitHub Packages
+    - name: Create GitHub Release with Python Package
+      if: startsWith(github.ref, 'refs/tags/v')
       env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-        TWINE_REPOSITORY_URL: https://upload.pypi.org/legacy/
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        twine upload --repository-url https://upload.pypi.org/legacy/ dist/* 
+        # Create a GitHub Release with the Python package as an asset
+        TAG_NAME=${GITHUB_REF#refs/tags/}
+        RELEASE_NAME="Face Recognition System $TAG_NAME"
+        
+        # Create release
+        gh release create $TAG_NAME \
+          --title "$RELEASE_NAME" \
+          --notes "Python package release for Face Recognition System $TAG_NAME" \
+          --draft=false \
+          --prerelease=false \
+          dist/*.tar.gz \
+          dist/*.whl
+        
+        echo "✅ Python package uploaded to GitHub Release: $TAG_NAME"
+    
+    - name: Upload Package Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-package
+        path: dist/
+        retention-days: 30 
