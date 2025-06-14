@@ -1,19 +1,20 @@
-# Face Recognition System - Docker Compose
-# Local development and production deployment
+# Face Recognition System - Docker Compose v1.2.0
+# Enhanced API integration and user experience improvements
 
 version: '3.8'
 
 services:
   face-recognition:
     # Use local built image or GitHub image
-    image: face-recognition-local  # Change to ghcr.io/ahmertsengol/face-auth-opencv:latest for production
-    container_name: face-recognition-app
+    image: face-recognition-local:v1.2.0  # Change to ghcr.io/ahmertsengol/face-auth-opencv:v1.2.0 for production
+    container_name: face-recognition-app-v1.2.0
     restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
       - FACE_RECOGNITION_ENV=production
       - LOG_LEVEL=info
+      - APP_VERSION=v1.2.0
     volumes:
       - face_data:/app/data
       - face_logs:/app/logs

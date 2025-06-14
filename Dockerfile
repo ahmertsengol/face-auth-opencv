@@ -1,4 +1,5 @@
-# Face Recognition System - Production Docker Image
+# Face Recognition System v1.2.0 - Production Docker Image
+# Enhanced with improved face_recognition API and user experience
 # Multi-stage build for optimized image size
 
 # Build stage
@@ -8,7 +9,8 @@ FROM python:3.11-slim as builder
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    APP_VERSION=v1.2.0
 
 # Install system dependencies for building
 RUN apt-get update && apt-get install -y \
@@ -37,7 +39,7 @@ COPY config/requirements-heavy.txt /tmp/requirements-heavy.txt
 RUN pip install --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r /tmp/requirements-base.txt
 
-# Install heavy packages with extended timeout
+# Install heavy packages with extended timeout (including face_recognition)
 RUN pip install --no-cache-dir --timeout 1800 -r /tmp/requirements-heavy.txt
 
 # Production stage
@@ -47,7 +49,8 @@ FROM python:3.11-slim as production
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH" \
-    FACE_RECOGNITION_ENV=production
+    FACE_RECOGNITION_ENV=production \
+    APP_VERSION=v1.2.0
 
 # Install only runtime dependencies
 RUN apt-get update && apt-get install -y \
