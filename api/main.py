@@ -503,13 +503,23 @@ async def recognize_face(request: RecognitionRequest, modules: dict = Depends(ge
             raise HTTPException(status_code=400, detail=f"Failed to decode image: {str(e)}")
         
         # Detect faces in image
-        face_encodings = face_detector.detect_and_encode_cv2(image)
+        import face_recognition
+        
+        # Convert BGR to RGB (OpenCV uses BGR, face_recognition uses RGB)
+        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        
+        # Get face locations and encodings
+        face_locations = face_recognition.face_locations(rgb_image)
+        face_encodings = face_recognition.face_encodings(rgb_image, face_locations)
         
         if len(face_encodings) == 0:
             return {
                 "success": True,
                 "recognized": False,
                 "message": "No faces detected in image",
+                "faces_detected": 0,
+                "face_locations": [],
+                "results": [],
                 "timestamp": datetime.now().isoformat()
             }
         
@@ -526,18 +536,32 @@ async def recognize_face(request: RecognitionRequest, modules: dict = Depends(ge
         recognition_results = face_recognizer.recognize_faces(face_encodings)
         
         results = []
-        for result in recognition_results:
+        for i, result in enumerate(recognition_results):
+            result_data = {
+                "face_location": face_locations[i] if i < len(face_locations) else None,
+                "is_match": result.is_match
+            }
+            
             if result.is_match:
-                results.append({
+                result_data.update({
                     "name": result.user_name,
                     "confidence": round(result.confidence, 3),
                     "distance": round(1.0 - result.confidence, 3)  # Convert confidence back to distance
                 })
+            else:
+                result_data.update({
+                    "name": "Unknown",
+                    "confidence": 0.0,
+                    "distance": 1.0
+                })
+            
+            results.append(result_data)
         
         return {
             "success": True,
-            "recognized": len(results) > 0,
+            "recognized": any(r["is_match"] for r in results),
             "faces_detected": len(face_encodings),
+            "face_locations": face_locations,
             "results": results,
             "timestamp": datetime.now().isoformat()
         }
