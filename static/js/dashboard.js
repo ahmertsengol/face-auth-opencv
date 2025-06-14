@@ -91,7 +91,7 @@ function getThemeIcon(theme) {
     if (theme === 'dark') {
         // Moon icon for switching TO dark theme
         return `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
-    } else {
+        } else {
         // Sun icon for switching TO light theme
         return `<circle cx="12" cy="12" r="5"/>
                 <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>`;
@@ -268,8 +268,8 @@ function displayUsers(users) {
             <div class="user-avatar">
                 <div class="user-avatar-small">
                     ${user.name.charAt(0).toUpperCase()}
+                    </div>
                 </div>
-            </div>
             <div class="user-info">
                 <h4>${escapeHtml(user.name)}</h4>
                 <p>${user.face_count || 0} face samples</p>
@@ -281,14 +281,14 @@ function displayUsers(users) {
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                         <circle cx="12" cy="12" r="3"/>
                     </svg>
-                </button>
+                    </button>
                 <button class="icon-btn danger" onclick="deleteUser('${escapeHtml(user.name)}')" title="Delete">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="3,6 5,6 21,6"/>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                     </svg>
-                </button>
-            </div>
+                    </button>
+                </div>
         </div>
     `).join('');
 }
@@ -434,7 +434,7 @@ function startAutoRefresh() {
     
     dashboard.refreshInterval = setInterval(() => {
         if (!dashboard.isLoading && !document.hidden) {
-            loadStats();
+    loadStats();
             loadSystemHealth();
         }
     }, dashboard.REFRESH_INTERVAL);
@@ -583,7 +583,7 @@ function handleFileSelection(files) {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 6L6 18"/><path d="M6 6l12 12"/>
                 </svg>
-            </button>
+                </button>
         `;
         uploadedFiles.appendChild(fileItem);
     });
@@ -989,8 +989,8 @@ function showNotification(message, type = 'info', duration = 5000) {
 
     // Auto-remove
     if (duration > 0) {
-        setTimeout(() => {
-            if (notification.parentElement) {
+    setTimeout(() => {
+        if (notification.parentElement) {
                 notification.classList.remove('show');
                 setTimeout(() => notification.remove(), 300);
             }
