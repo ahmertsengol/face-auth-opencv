@@ -9,6 +9,7 @@ class LiveRecognitionApp {
         this.videoStream = null;
         this.recognitionInterval = null;
         this.currentTheme = localStorage.getItem('live-theme') || 'light';
+        this.settingsLoaded = false; // Flag to prevent settings reset after save
         this.settings = {
             recognitionInterval: 2000,
             confidenceThreshold: 0.6,
@@ -87,39 +88,141 @@ class LiveRecognitionApp {
 
     // Initialize settings controls
     initializeSettingsControls() {
-        const intervalSlider = document.getElementById('recognition-interval');
-        const confidenceSlider = document.getElementById('confidence-threshold');
-        const intervalValue = document.getElementById('interval-value');
-        const confidenceValue = document.getElementById('confidence-value');
-        const showFpsCheckbox = document.getElementById('show-fps');
+        // Range sliders
+        this.initializeRangeControls();
+        
+        // Checkboxes
+        this.initializeCheckboxControls();
+        
+        // Select dropdowns
+        this.initializeSelectControls();
+        
+        // Number inputs
+        this.initializeNumberControls();
+    }
 
-        if (intervalSlider && intervalValue) {
-            intervalSlider.value = this.settings.recognitionInterval;
-            intervalValue.textContent = `${this.settings.recognitionInterval}ms`;
+    initializeRangeControls() {
+        const rangeControls = [
+            { id: 'recognition-interval', setting: 'recognitionInterval', suffix: 'ms' },
+            { id: 'confidence-threshold', setting: 'confidenceThreshold', suffix: '%', multiplier: 100 },
+            { id: 'alert-volume', setting: 'alertVolume', suffix: '%' }
+        ];
+
+        rangeControls.forEach(({ id, setting, suffix, multiplier = 1 }) => {
+            const slider = document.getElementById(id);
+            let valueDisplay;
             
-            intervalSlider.addEventListener('input', (e) => {
-                this.settings.recognitionInterval = parseInt(e.target.value);
-                intervalValue.textContent = `${this.settings.recognitionInterval}ms`;
-            });
-        }
-
-        if (confidenceSlider && confidenceValue) {
-            confidenceSlider.value = this.settings.confidenceThreshold;
-            confidenceValue.textContent = `${Math.round(this.settings.confidenceThreshold * 100)}%`;
+            // Find the correct value display element
+            if (id === 'recognition-interval') {
+                valueDisplay = document.getElementById('recognition-value');
+            } else if (id === 'confidence-threshold') {
+                valueDisplay = document.getElementById('confidence-value');
+            } else if (id === 'alert-volume') {
+                valueDisplay = document.getElementById('volume-value');
+            } else {
+                valueDisplay = document.getElementById(id + '-value');
+            }
             
-            confidenceSlider.addEventListener('input', (e) => {
-                this.settings.confidenceThreshold = parseFloat(e.target.value);
-                confidenceValue.textContent = `${Math.round(this.settings.confidenceThreshold * 100)}%`;
-            });
-        }
+            if (slider && valueDisplay) {
+                slider.value = this.settings[setting];
+                const displayValue = multiplier > 1 ? Math.round(this.settings[setting] * multiplier) : this.settings[setting];
+                valueDisplay.textContent = `${displayValue}${suffix}`;
+                
+                slider.addEventListener('input', (e) => {
+                    const value = multiplier > 1 ? parseFloat(e.target.value) : parseInt(e.target.value);
+                    this.settings[setting] = value;
+                    const displayValue = multiplier > 1 ? Math.round(value * multiplier) : value;
+                    valueDisplay.textContent = `${displayValue}${suffix}`;
+                    
+                    // Apply changes immediately for some settings
+                    if (setting === 'recognitionInterval' && this.isActive) {
+                        this.stopRecognitionLoop();
+                        this.startRecognitionLoop();
+                    }
+                });
+            }
+        });
+    }
 
-        if (showFpsCheckbox) {
-            showFpsCheckbox.checked = this.settings.showFPS;
-            showFpsCheckbox.addEventListener('change', (e) => {
-                this.settings.showFPS = e.target.checked;
-                this.togglePerformanceMonitor();
-            });
-        }
+    initializeCheckboxControls() {
+        const checkboxControls = [
+            { id: 'mirror-video', setting: 'mirrorVideo', action: () => this.applyMirrorSetting() },
+            { id: 'show-fps', setting: 'showFPS', action: () => this.togglePerformanceMonitor() },
+            { id: 'continuous-recognition', setting: 'continuousRecognition' },
+            { id: 'save-unknown-faces', setting: 'saveUnknownFaces' },
+            { id: 'show-bounding-boxes', setting: 'showBoundingBoxes' },
+            { id: 'show-confidence', setting: 'showConfidence' },
+            { id: 'show-recognition-history', setting: 'showRecognitionHistory' },
+            { id: 'audio-alerts', setting: 'audioAlerts' },
+            { id: 'recognition-sound', setting: 'recognitionSound' },
+            { id: 'unknown-face-alert', setting: 'unknownFaceAlert' },
+            { id: 'desktop-notifications', setting: 'desktopNotifications', action: () => this.requestNotificationPermission() },
+            { id: 'auto-capture-on-recognition', setting: 'autoCaptureOnRecognition' },
+            { id: 'debug-mode', setting: 'debugMode' },
+            { id: 'auto-retry', setting: 'autoRetry' }
+        ];
+
+        checkboxControls.forEach(({ id, setting, action }) => {
+            const checkbox = document.getElementById(id);
+            if (checkbox) {
+                checkbox.checked = this.settings[setting];
+                checkbox.addEventListener('change', (e) => {
+                    this.settings[setting] = e.target.checked;
+                    if (action) action();
+                    this.showNotification(
+                        `${setting.replace(/([A-Z])/g, ' $1').toLowerCase()} ${e.target.checked ? 'enabled' : 'disabled'}`, 
+                        'info'
+                    );
+                });
+            }
+        });
+    }
+
+    initializeSelectControls() {
+        const selectControls = [
+            { id: 'camera-resolution', setting: 'cameraResolution', action: () => this.applyCameraSettings() },
+            { id: 'frame-rate', setting: 'frameRate', action: () => this.applyCameraSettings() },
+            { id: 'camera-facing', setting: 'cameraFacing', action: () => this.applyCameraSettings() },
+            { id: 'max-faces', setting: 'maxFaces' },
+            { id: 'results-max-count', setting: 'resultsMaxCount' },
+            { id: 'theme-preference', setting: 'themePreference', action: () => this.applyThemePreference() },
+            { id: 'processing-mode', setting: 'processingMode' }
+        ];
+
+        selectControls.forEach(({ id, setting, action }) => {
+            const select = document.getElementById(id);
+            if (select) {
+                select.value = this.settings[setting];
+                select.addEventListener('change', (e) => {
+                    this.settings[setting] = e.target.value;
+                    if (action) action();
+                    this.showNotification(
+                        `${setting.replace(/([A-Z])/g, ' $1').toLowerCase()} changed to ${e.target.value}`, 
+                        'info'
+                    );
+                });
+            }
+        });
+    }
+
+    initializeNumberControls() {
+        const numberControls = [
+            { id: 'api-timeout', setting: 'apiTimeout' }
+        ];
+
+        numberControls.forEach(({ id, setting }) => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.value = this.settings[setting];
+                input.addEventListener('change', (e) => {
+                    this.settings[setting] = parseInt(e.target.value);
+                    this.showNotification(
+                        `${setting.replace(/([A-Z])/g, ' $1').toLowerCase()} set to ${e.target.value}`, 
+                        'info'
+                    );
+                });
+            }
+        });
     }
 
     // Handle keyboard shortcuts
@@ -139,6 +242,18 @@ class LiveRecognitionApp {
                 if (e.ctrlKey || e.metaKey) {
                     e.preventDefault();
                     this.openSettings();
+                }
+                break;
+            case 'b':
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    this.toggleBoundingBoxes();
+                }
+                break;
+            case 'f':
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    this.togglePerformanceMonitor();
                 }
                 break;
             case 'Escape':
@@ -210,13 +325,10 @@ class LiveRecognitionApp {
             this.updateConnectionStatus('connecting');
             this.showNotification('Starting camera...', 'info');
 
-            // Get camera stream
+            // Get camera stream with settings
+            const videoConstraints = this.buildVideoConstraints();
             this.videoStream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    facingMode: 'user'
-                }
+                video: videoConstraints
             });
 
             // Setup video element
@@ -226,6 +338,9 @@ class LiveRecognitionApp {
                 await new Promise(resolve => {
                     video.onloadedmetadata = resolve;
                 });
+                
+                // Apply mirror setting
+                this.applyMirrorSetting();
             }
 
             // Setup canvas
@@ -334,58 +449,139 @@ class LiveRecognitionApp {
                 })
             });
 
-            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
 
-            if (result.success) {
-                this.processRecognitionResult(result);
+            const result = await response.json();
+            
+            // Validate API response structure
+            if (!result || typeof result !== 'object') {
+                throw new Error('Invalid API response format');
+            }
+
+            // Ensure required properties exist with defaults
+            const normalizedResult = {
+                success: result.success || false,
+                faces_detected: result.faces_detected || 0,
+                recognized: result.recognized || false,
+                results: Array.isArray(result.results) ? result.results : [],
+                error: result.error || null
+            };
+
+            if (normalizedResult.success) {
+                this.processRecognitionResult(normalizedResult);
                 
                 // Update performance stats
                 const processingTime = performance.now() - startTime;
-                this.updatePerformanceStats(processingTime, result.faces_detected, result.results.length);
+                this.updatePerformanceStats(processingTime, normalizedResult.faces_detected, normalizedResult.results.length);
+            } else {
+                console.warn('API returned unsuccessful response:', normalizedResult.error || 'Unknown error');
+                // Still process the result to show "no faces detected"
+                this.processRecognitionResult(normalizedResult);
             }
 
         } catch (error) {
             console.error('Frame processing error:', error);
+            
+            // Create a safe fallback result
+            const fallbackResult = {
+                success: false,
+                faces_detected: 0,
+                recognized: false,
+                results: [],
+                error: error.message
+            };
+            
+            // Update UI with fallback data
+            this.updateStatsDisplay(0, 0);
         }
     }
 
     // Process recognition results
     processRecognitionResult(result) {
-        // Update stats
-        this.updateStatsDisplay(result.faces_detected, result.results.length);
+        // Validate and normalize result object
+        if (!result || typeof result !== 'object') {
+            console.warn('Invalid result object passed to processRecognitionResult');
+            return;
+        }
 
-        // Update results display
-        this.updateResultsDisplay(result);
+        // Ensure all required properties exist with safe defaults
+        const safeResult = {
+            faces_detected: Number(result.faces_detected) || 0,
+            recognized: Boolean(result.recognized),
+            results: Array.isArray(result.results) ? result.results : [],
+            success: Boolean(result.success),
+            error: result.error || null
+        };
+
+        // Update stats with safe values
+        this.updateStatsDisplay(safeResult.faces_detected, safeResult.results.length);
+
+        // Update results display if enabled
+        if (this.settings.showRecognitionHistory) {
+            this.updateResultsDisplay(safeResult);
+        }
         
         // Handle audio alerts and notifications
-        if (result.recognized && result.results.length > 0) {
-            this.playAlert('recognition');
+        if (safeResult.recognized && safeResult.results.length > 0) {
+            // Play recognition sound if enabled
+            if (this.settings.audioAlerts && this.settings.recognitionSound) {
+                this.playAlert('recognition');
+            }
             
             // Desktop notification for recognized faces
             if (this.settings.desktopNotifications) {
-                const names = result.results.map(r => r.name).join(', ');
-                this.showDesktopNotification(
-                    'Face Recognition',
-                    `Recognized: ${names}`,
-                    '/static/images/face-icon.png'
-                );
+                try {
+                    const names = safeResult.results
+                        .filter(r => r && r.name) // Filter out invalid results
+                        .map(r => r.name)
+                        .join(', ');
+                    
+                    if (names) {
+                        this.showDesktopNotification(
+                            'Face Recognition',
+                            `Recognized: ${names}`,
+                            '/static/images/face-icon.png'
+                        );
+                    }
+                } catch (error) {
+                    console.error('Error creating recognition notification:', error);
+                }
             }
             
-            // Auto-capture on recognition (Disabled - users can manually capture if needed)
-            // if (this.settings.autoCaptureOnRecognition) {
-            //     setTimeout(() => this.captureFrame(), 500); // Small delay for better UX
-            // }
-        } else if (result.faces_detected > 0) {
+            // Auto-capture on recognition if enabled
+            if (this.settings.autoCaptureOnRecognition) {
+                setTimeout(() => this.captureFrame(), 500); // Small delay for better UX
+            }
+        } else if (safeResult.faces_detected > 0) {
             // Unknown face detected
-            this.playAlert('unknown');
+            if (this.settings.audioAlerts && this.settings.unknownFaceAlert) {
+                this.playAlert('unknown');
+            }
             
             if (this.settings.unknownFaceAlert && this.settings.desktopNotifications) {
                 this.showDesktopNotification(
                     'Unknown Face Detected',
-                    `${result.faces_detected} unknown face(s) detected`,
+                    `${safeResult.faces_detected} unknown face(s) detected`,
                     '/static/images/unknown-icon.png'
                 );
             }
+            
+            // Save unknown faces if enabled
+            if (this.settings.saveUnknownFaces) {
+                this.saveUnknownFaceCapture();
+            }
+        }
+        
+        // Bounding boxes feature disabled
+        // if (this.settings.showBoundingBoxes) {
+        //     this.drawFaceBoundingBoxes(safeResult);
+        // }
+
+        // Log any errors from API
+        if (safeResult.error) {
+            console.warn('API returned error:', safeResult.error);
         }
     }
 
@@ -449,7 +645,20 @@ class LiveRecognitionApp {
         const resultsContent = this.elements.resultsContent;
         if (!resultsContent) return;
 
-        if (!result.recognized || result.results.length === 0) {
+        // Validate result object
+        if (!result || typeof result !== 'object') {
+            console.warn('Invalid result object in updateResultsDisplay');
+            return;
+        }
+
+        // Ensure safe defaults
+        const safeResult = {
+            recognized: Boolean(result.recognized),
+            results: Array.isArray(result.results) ? result.results : [],
+            faces_detected: Number(result.faces_detected) || 0
+        };
+
+        if (!safeResult.recognized || safeResult.results.length === 0) {
             // Show no match result
             const noMatchHtml = `
                 <div class="recognition-result no-match">
@@ -463,7 +672,7 @@ class LiveRecognitionApp {
                     <div class="result-info">
                         <div class="result-name">No Match Found</div>
                         <div class="result-details">
-                            <span>Faces: ${result.faces_detected}</span>
+                            <span>Faces: ${safeResult.faces_detected}</span>
                         </div>
                     </div>
                     <div class="result-time">${new Date().toLocaleTimeString()}</div>
@@ -472,32 +681,72 @@ class LiveRecognitionApp {
             
             resultsContent.innerHTML = noMatchHtml + resultsContent.innerHTML;
         } else {
-            // Show recognition results
-            const resultsHtml = result.results.map(person => `
-                <div class="recognition-result match">
-                    <div class="result-avatar">
-                        ${person.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div class="result-info">
-                        <div class="result-name">${this.escapeHtml(person.name)}</div>
-                        <div class="result-details">
-                            <span>Confidence: ${Math.round(person.confidence * 100)}%</span>
-                            <span>Distance: ${person.distance.toFixed(3)}</span>
+            // Show recognition results with validation
+            try {
+                const resultsHtml = safeResult.results
+                    .filter(person => person && typeof person === 'object' && person.name) // Filter valid results
+                    .map(person => {
+                        // Ensure person object has required properties
+                        const safePerson = {
+                            name: String(person.name || 'Unknown'),
+                            confidence: Number(person.confidence) || 0,
+                            distance: Number(person.distance) || 0
+                        };
+
+                        return `
+                            <div class="recognition-result match">
+                                <div class="result-avatar">
+                                    ${safePerson.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div class="result-info">
+                                    <div class="result-name">${this.escapeHtml(safePerson.name)}</div>
+                                    <div class="result-details">
+                                        <span>Confidence: ${Math.round(safePerson.confidence * 100)}%</span>
+                                        <span>Distance: ${safePerson.distance.toFixed(3)}</span>
+                                    </div>
+                                </div>
+                                <div class="result-time">${new Date().toLocaleTimeString()}</div>
+                            </div>
+                        `;
+                    }).join('');
+                
+                resultsContent.innerHTML = resultsHtml + resultsContent.innerHTML;
+            } catch (error) {
+                console.error('Error rendering recognition results:', error);
+                // Fallback to no match display
+                const fallbackHtml = `
+                    <div class="recognition-result error">
+                        <div class="result-avatar unknown">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M15 9l-6 6"/>
+                                <path d="M9 9l6 6"/>
+                            </svg>
                         </div>
+                        <div class="result-info">
+                            <div class="result-name">Display Error</div>
+                            <div class="result-details">
+                                <span>Could not display results</span>
+                            </div>
+                        </div>
+                        <div class="result-time">${new Date().toLocaleTimeString()}</div>
                     </div>
-                    <div class="result-time">${new Date().toLocaleTimeString()}</div>
-                </div>
-            `).join('');
-            
-            resultsContent.innerHTML = resultsHtml + resultsContent.innerHTML;
+                `;
+                resultsContent.innerHTML = fallbackHtml + resultsContent.innerHTML;
+            }
         }
 
-        // Keep only last 10 results
-        const results = resultsContent.querySelectorAll('.recognition-result');
-        if (results.length > 10) {
-            for (let i = 10; i < results.length; i++) {
-                results[i].remove();
+        // Keep only last N results based on settings
+        try {
+            const maxResults = parseInt(this.settings.resultsMaxCount) || 25;
+            const results = resultsContent.querySelectorAll('.recognition-result');
+            if (results.length > maxResults) {
+                for (let i = maxResults; i < results.length; i++) {
+                    results[i].remove();
+                }
             }
+        } catch (error) {
+            console.error('Error managing results history:', error);
         }
 
         // Auto-scroll to top for new results
@@ -664,52 +913,54 @@ class LiveRecognitionApp {
             cameraResolution: this.getUIValue('camera-resolution', 'select') || '1280x720',
             frameRate: parseInt(this.getUIValue('frame-rate', 'select')) || 30,
             cameraFacing: this.getUIValue('camera-facing', 'select') || 'user',
-            mirrorVideo: this.getUIValue('mirror-video', 'checkbox') || true,
+            mirrorVideo: this.getUIValue('mirror-video', 'checkbox') !== null ? this.getUIValue('mirror-video', 'checkbox') : true,
 
             // Recognition Settings
             recognitionInterval: parseInt(this.getUIValue('recognition-interval', 'range')) || 2000,
             confidenceThreshold: parseFloat(this.getUIValue('confidence-threshold', 'range')) || 0.6,
             maxFaces: this.getUIValue('max-faces', 'select') || '3',
-            continuousRecognition: this.getUIValue('continuous-recognition', 'checkbox') || true,
-            saveUnknownFaces: this.getUIValue('save-unknown-faces', 'checkbox') || false,
+            continuousRecognition: this.getUIValue('continuous-recognition', 'checkbox') !== null ? this.getUIValue('continuous-recognition', 'checkbox') : true,
+            saveUnknownFaces: this.getUIValue('save-unknown-faces', 'checkbox') !== null ? this.getUIValue('save-unknown-faces', 'checkbox') : false,
 
             // Display Settings
-            showFPS: this.getUIValue('show-fps', 'checkbox') || true,
-            showBoundingBoxes: this.getUIValue('show-bounding-boxes', 'checkbox') || true,
-            showConfidence: this.getUIValue('show-confidence', 'checkbox') || true,
-            showRecognitionHistory: this.getUIValue('show-recognition-history', 'checkbox') || true,
+            showFPS: this.getUIValue('show-fps', 'checkbox') !== null ? this.getUIValue('show-fps', 'checkbox') : true,
+            showBoundingBoxes: this.getUIValue('show-bounding-boxes', 'checkbox') !== null ? this.getUIValue('show-bounding-boxes', 'checkbox') : true,
+            showConfidence: this.getUIValue('show-confidence', 'checkbox') !== null ? this.getUIValue('show-confidence', 'checkbox') : true,
+            showRecognitionHistory: this.getUIValue('show-recognition-history', 'checkbox') !== null ? this.getUIValue('show-recognition-history', 'checkbox') : true,
             resultsMaxCount: parseInt(this.getUIValue('results-max-count', 'select')) || 25,
             themePreference: this.getUIValue('theme-preference', 'select') || 'auto',
 
             // Alerts Settings
-            audioAlerts: this.getUIValue('audio-alerts', 'checkbox') || true,
-            recognitionSound: this.getUIValue('recognition-sound', 'checkbox') || true,
-            unknownFaceAlert: this.getUIValue('unknown-face-alert', 'checkbox') || false,
+            audioAlerts: this.getUIValue('audio-alerts', 'checkbox') !== null ? this.getUIValue('audio-alerts', 'checkbox') : true,
+            recognitionSound: this.getUIValue('recognition-sound', 'checkbox') !== null ? this.getUIValue('recognition-sound', 'checkbox') : true,
+            unknownFaceAlert: this.getUIValue('unknown-face-alert', 'checkbox') !== null ? this.getUIValue('unknown-face-alert', 'checkbox') : false,
             alertVolume: parseInt(this.getUIValue('alert-volume', 'range')) || 50,
-            desktopNotifications: this.getUIValue('desktop-notifications', 'checkbox') || false,
-            autoCaptureOnRecognition: this.getUIValue('auto-capture-on-recognition', 'checkbox') || false,
+            desktopNotifications: this.getUIValue('desktop-notifications', 'checkbox') !== null ? this.getUIValue('desktop-notifications', 'checkbox') : false,
+            autoCaptureOnRecognition: this.getUIValue('auto-capture-on-recognition', 'checkbox') !== null ? this.getUIValue('auto-capture-on-recognition', 'checkbox') : false,
 
             // Advanced Settings
             processingMode: this.getUIValue('processing-mode', 'select') || 'balanced',
-            debugMode: this.getUIValue('debug-mode', 'checkbox') || false,
+            debugMode: this.getUIValue('debug-mode', 'checkbox') !== null ? this.getUIValue('debug-mode', 'checkbox') : false,
             apiTimeout: parseInt(this.getUIValue('api-timeout', 'number')) || 10,
-            autoRetry: this.getUIValue('auto-retry', 'checkbox') || true
+            autoRetry: this.getUIValue('auto-retry', 'checkbox') !== null ? this.getUIValue('auto-retry', 'checkbox') : true
         };
 
         // Save to localStorage
         localStorage.setItem('live-recognition-settings', JSON.stringify(this.settings));
         
-        // Apply settings
+        // Apply settings without reloading from localStorage
         this.applySettings();
         
         // Close modal
         this.closeSettings();
         
-        // Show success message
-        this.showNotification('Settings saved successfully', 'success');
+        // Show success message of settings
+        this.showNotification(`Settings saved successfully.`, 'success');
         
         // Add visual feedback
         this.showSettingsSavedFeedback();
+        
+        console.log('Settings saved:', this.settings);
     }
 
     getUIValue(id, type) {
@@ -733,10 +984,24 @@ class LiveRecognitionApp {
         // Apply performance monitor visibility
         this.togglePerformanceMonitor();
         
+        // Apply bounding boxes visibility
+        const overlay = this.elements.faceOverlay;
+        if (overlay) {
+            if (this.settings.showBoundingBoxes) {
+                overlay.classList.remove('hidden');
+            } else {
+                overlay.classList.add('hidden');
+                overlay.innerHTML = '';
+            }
+        }
+        
         // Apply theme
         if (this.settings.themePreference !== 'auto') {
             document.body.className = `${this.settings.themePreference}-theme live-recognition-page`;
         }
+        
+        // Apply mirror setting
+        this.applyMirrorSetting();
         
         // Request desktop notification permission if enabled
         if (this.settings.desktopNotifications && 'Notification' in window && Notification.permission === 'default') {
@@ -748,6 +1013,286 @@ class LiveRecognitionApp {
             this.stopRecognitionLoop();
             this.startRecognitionLoop();
         }
+    }
+
+    // Apply mirror setting to video element
+    applyMirrorSetting() {
+        const video = this.elements.video;
+        if (video) {
+            if (this.settings.mirrorVideo) {
+                video.classList.add('mirrored');
+            } else {
+                video.classList.remove('mirrored');
+            }
+        }
+    }
+
+    // Apply camera settings
+    applyCameraSettings() {
+        if (this.isActive) {
+            this.showNotification('Camera settings will apply on next start', 'info');
+        }
+    }
+
+    // Apply theme preference
+    applyThemePreference() {
+        if (this.settings.themePreference !== 'auto') {
+            this.currentTheme = this.settings.themePreference;
+            document.body.className = `${this.currentTheme}-theme live-recognition-page`;
+            localStorage.setItem('live-theme', this.currentTheme);
+            this.updateThemeIcon();
+        } else {
+            // Auto theme based on system preference
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            this.currentTheme = prefersDark ? 'dark' : 'light';
+            document.body.className = `${this.currentTheme}-theme live-recognition-page`;
+            this.updateThemeIcon();
+        }
+    }
+
+    // Request notification permission
+    requestNotificationPermission() {
+        if (this.settings.desktopNotifications && 'Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    this.showNotification('Desktop notifications enabled', 'success');
+                } else {
+                    this.showNotification('Desktop notifications permission denied', 'warning');
+                    this.settings.desktopNotifications = false;
+                    const checkbox = document.getElementById('desktop-notifications');
+                    if (checkbox) checkbox.checked = false;
+                }
+            });
+        }
+    }
+
+    // Build video constraints from settings
+    buildVideoConstraints() {
+        const constraints = {
+            facingMode: this.settings.cameraFacing
+        };
+
+        // Resolution settings
+        if (this.settings.cameraResolution !== 'auto') {
+            const [width, height] = this.settings.cameraResolution.split('x').map(Number);
+            constraints.width = { ideal: width };
+            constraints.height = { ideal: height };
+        } else {
+            constraints.width = { ideal: 1280 };
+            constraints.height = { ideal: 720 };
+        }
+
+        // Frame rate settings
+        if (this.settings.frameRate) {
+            constraints.frameRate = { ideal: parseInt(this.settings.frameRate) };
+        }
+
+        return constraints;
+    }
+
+    // Save unknown face capture
+    saveUnknownFaceCapture() {
+        if (!this.elements.video || !this.elements.canvas) return;
+        
+        const video = this.elements.video;
+        const canvas = this.elements.canvas;
+        const ctx = canvas.getContext('2d');
+        
+        // Draw current frame
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Create download link
+        canvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `unknown-face-${new Date().getTime()}.jpg`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }, 'image/jpeg', 0.9);
+        
+        this.showNotification('Unknown face saved', 'info');
+    }
+
+    // Draw face bounding boxes
+    drawFaceBoundingBoxes(result) {
+        const overlay = this.elements.faceOverlay;
+        if (!overlay) return;
+        
+        // Check if bounding boxes should be shown
+        if (!this.settings.showBoundingBoxes) {
+            overlay.innerHTML = '';
+            overlay.classList.add('hidden');
+            return;
+        }
+        
+        overlay.classList.remove('hidden');
+        
+        // Clear previous boxes
+        overlay.innerHTML = '';
+        
+        // Validate result object
+        if (!result || typeof result !== 'object') {
+            console.warn('Invalid result object in drawFaceBoundingBoxes');
+            return;
+        }
+
+        // Ensure safe defaults
+        const safeResult = {
+            faces_detected: Number(result.faces_detected) || 0,
+            face_locations: Array.isArray(result.face_locations) ? result.face_locations : [],
+            results: Array.isArray(result.results) ? result.results : []
+        };
+        
+
+        
+        if (safeResult.faces_detected > 0 && safeResult.face_locations.length > 0) {
+            try {
+                safeResult.face_locations.forEach((location, index) => {
+                    // Validate location array
+                    if (!Array.isArray(location) || location.length < 4) {
+                        console.warn(`Invalid face location at index ${index}:`, location);
+                        return;
+                    }
+
+                    const box = document.createElement('div');
+                    box.className = 'face-box';
+                    
+                    // Position the box (face_locations contains [top, right, bottom, left])
+                    const [top, right, bottom, left] = location.map(coord => Number(coord) || 0);
+                    const video = this.elements.video;
+                    
+                    if (video && video.videoWidth && video.videoHeight) {
+                        const scaleX = video.offsetWidth / video.videoWidth;
+                        const scaleY = video.offsetHeight / video.videoHeight;
+                        
+                        // Convert face_recognition coordinates to screen coordinates
+                        const boxLeft = Math.max(0, left * scaleX);
+                        const boxTop = Math.max(0, top * scaleY);
+                        const boxWidth = Math.max(0, (right - left) * scaleX);
+                        const boxHeight = Math.max(0, (bottom - top) * scaleY);
+                        
+                        box.style.left = `${boxLeft}px`;
+                        box.style.top = `${boxTop}px`;
+                        box.style.width = `${boxWidth}px`;
+                        box.style.height = `${boxHeight}px`;
+                        
+                        // Add recognition status and labels
+                        const matchedResult = safeResult.results[index];
+                        if (matchedResult && matchedResult.name) {
+                            box.classList.add('recognized');
+                            
+                            // Add name label
+                            const label = document.createElement('div');
+                            label.className = 'face-label recognized';
+                            label.textContent = this.escapeHtml(matchedResult.name);
+                            box.appendChild(label);
+                            
+                            // Add confidence badge if enabled
+                            if (this.settings.showConfidence && matchedResult.confidence !== undefined) {
+                                const confidenceBadge = document.createElement('div');
+                                confidenceBadge.className = 'confidence-badge';
+                                const confidence = Number(matchedResult.confidence) || 0;
+                                confidenceBadge.textContent = `${Math.round(confidence * 100)}%`;
+                                box.appendChild(confidenceBadge);
+                            }
+                            
+                            // Play recognition sound if enabled
+                            if (this.settings.recognitionSound && this.settings.audioAlerts) {
+                                this.playAlert('recognition');
+                            }
+                            
+                        } else {
+                            box.classList.add('unknown');
+                            
+                            // Add unknown label
+                            const label = document.createElement('div');
+                            label.className = 'face-label unknown';
+                            label.textContent = 'Unknown Face';
+                            box.appendChild(label);
+                            
+                            // Add confidence badge for detection confidence if available
+                            if (this.settings.showConfidence) {
+                                const confidenceBadge = document.createElement('div');
+                                confidenceBadge.className = 'confidence-badge';
+                                confidenceBadge.textContent = 'Detection';
+                                box.appendChild(confidenceBadge);
+                            }
+                            
+                            // Play unknown face alert if enabled
+                            if (this.settings.unknownFaceAlert && this.settings.audioAlerts) {
+                                this.playAlert('unknown');
+                            }
+                            
+                            // Save unknown face capture if enabled
+                            if (this.settings.saveUnknownFaces) {
+                                this.saveUnknownFaceCapture();
+                            }
+                        }
+                        
+                        // Add animation class based on processing mode
+                        if (this.settings.processingMode === 'accuracy') {
+                            box.classList.add('detecting');
+                        }
+                        
+                        // Auto-capture on recognition if enabled
+                        if (this.settings.autoCaptureOnRecognition && matchedResult && matchedResult.name) {
+                            setTimeout(() => this.captureFrame(), 500);
+                        }
+                        
+                        overlay.appendChild(box);
+                    }
+                });
+                
+                // Send desktop notification if enabled
+                if (this.settings.desktopNotifications && safeResult.results.length > 0) {
+                    const recognizedNames = safeResult.results
+                        .filter(r => r.name)
+                        .map(r => r.name);
+                        
+                    if (recognizedNames.length > 0) {
+                        this.showDesktopNotification(
+                            'Face Recognition',
+                            `Recognized: ${recognizedNames.join(', ')}`,
+                            'success'
+                        );
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error drawing face bounding boxes:', error);
+                this.showNotification('Error drawing face boxes', 'error');
+            }
+        }
+    }
+
+    // Toggle bounding boxes visibility
+    toggleBoundingBoxes() {
+        this.settings.showBoundingBoxes = !this.settings.showBoundingBoxes;
+        
+        const overlay = this.elements.faceOverlay;
+        if (overlay) {
+            if (this.settings.showBoundingBoxes) {
+                overlay.classList.remove('hidden');
+            } else {
+                overlay.classList.add('hidden');
+                overlay.innerHTML = '';
+            }
+        }
+        
+        // Update settings checkbox
+        const checkbox = document.getElementById('show-bounding-boxes');
+        if (checkbox) {
+            checkbox.checked = this.settings.showBoundingBoxes;
+        }
+        
+        this.showNotification(
+            `Face bounding boxes ${this.settings.showBoundingBoxes ? 'enabled' : 'disabled'}`,
+            'info'
+        );
+        
+        // Save setting
+        localStorage.setItem('live-recognition-settings', JSON.stringify(this.settings));
     }
 
     loadSettings() {
@@ -767,7 +1312,7 @@ class LiveRecognitionApp {
 
             // Display Settings
             showFPS: true,
-            showBoundingBoxes: true,
+            showBoundingBoxes: false,
             showConfidence: true,
             showRecognitionHistory: true,
             resultsMaxCount: 25,
@@ -791,8 +1336,11 @@ class LiveRecognitionApp {
         const saved = localStorage.getItem('live-recognition-settings');
         this.settings = saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
         
-        // Apply loaded settings
-        this.applySettings();
+        // Only apply settings if this is initial load, not after save
+        if (!this.settingsLoaded) {
+            this.applySettings();
+            this.settingsLoaded = true;
+        }
     }
 
     resetSettings() {
@@ -876,36 +1424,57 @@ class LiveRecognitionApp {
 
     // Audio Alert System
     playAlert(type = 'recognition') {
-        if (!this.settings.audioAlerts) return;
-
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-
-        // Set volume from settings
-        gainNode.gain.value = this.settings.alertVolume / 100;
-
-        // Different sounds for different events
-        switch (type) {
-            case 'recognition':
-                if (this.settings.recognitionSound) {
-                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-                    oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1);
-                }
-                break;
-            case 'unknown':
-                if (this.settings.unknownFaceAlert) {
-                    oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
-                    oscillator.frequency.setValueAtTime(300, audioContext.currentTime + 0.2);
-                }
-                break;
+        // Check if audio alerts are enabled
+        if (!this.settings.audioAlerts) {
+            console.log('Audio alerts disabled');
+            return;
         }
 
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.3);
+        // Check specific sound settings
+        if (type === 'recognition' && !this.settings.recognitionSound) {
+            console.log('Recognition sound disabled');
+            return;
+        }
+        
+        if (type === 'unknown' && !this.settings.unknownFaceAlert) {
+            console.log('Unknown face alert disabled');
+            return;
+        }
+
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            // Set volume from settings (0-100 to 0-1)
+            const volume = Math.max(0, Math.min(100, this.settings.alertVolume || 50)) / 100;
+            gainNode.gain.value = volume;
+
+            // Different sounds for different events
+            switch (type) {
+                case 'recognition':
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                    oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1);
+                    break;
+                case 'unknown':
+                    oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+                    oscillator.frequency.setValueAtTime(300, audioContext.currentTime + 0.2);
+                    break;
+                default:
+                    oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+                    break;
+            }
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+            
+            console.log(`Playing ${type} alert at volume ${Math.round(volume * 100)}%`);
+        } catch (error) {
+            console.error('Error playing alert sound:', error);
+        }
     }
 
     // Desktop Notifications
@@ -996,6 +1565,7 @@ window.resetSettings = () => liveApp.resetSettings();
 window.exportSettings = () => liveApp.exportSettings();
 window.importSettings = () => liveApp.importSettings();
 window.clearAllData = () => liveApp.clearAllData();
+window.toggleBoundingBoxes = () => liveApp.toggleBoundingBoxes();
 
 // Settings Tab Management
 window.switchSettingsTab = (tabName) => {
